@@ -1,3 +1,9 @@
+import collections
+import networkx as nx
+import osmnx
+import matplotlib.pyplot as plt
+import os.path
+
 PLACE = 'Barcelona, Catalonia'
 GRAPH_FILENAME = 'barcelona.graph'
 SIZE = 800
@@ -6,6 +12,44 @@ CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2
 
 Highway = collections.namedtuple('Highway', '...') # Tram
 Congestion = collections.namedtuple('Congestion', '...')
+
+def exists_graph(filename):
+    return os.path.isfile(filename)
+
+def download_graph(place):
+    graph = osmnx.graph_from_place(place, network_type='drive', simplify=True)
+    graph = osmnx.utils_graph.get_digraph(graph, weight='length')
+    return graph
+
+def save_graph(graph, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(graph, file)
+
+def load_graph(filename):
+    with open(filename, 'rb') as file:
+        graph = pickle.load(file)
+    return graph
+
+def plot_graph():
+    nx.draw()
+
+def download_csv(url):
+    with urllib.request.urlopen(url) as response:
+        lines = [l.decode('utf-8') for l in response.readlines()]
+    reader = csv.reader(lines, delimiter=',', quotechar='"')
+    next(reader)  # ignore first line with description
+    for line in reader:
+        way_id, description, coordinates = line
+        print(way_id, description, coordinates)
+
+def download_highways(url):
+    pass
+
+def download_congestions(url):
+    pass
+
+def build_igraph():
+    pass
 
 def test():
     # load/download graph (using cache) and plot it on the screen
