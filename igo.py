@@ -1,9 +1,12 @@
 import collections
 import networkx as nx
-import osmnx
-import matplotlib.pyplot as plt
+import osmnx as ox
+import pandas as pd
 import os.path
 import pickle
+import csv
+import urllib
+from shapely.geometry import LineString
 
 PLACE = 'Barcelona, Catalonia'
 IMAGE_FILENAME = 'barcelona.png'
@@ -12,15 +15,15 @@ SIZE = 800
 HIGHWAYS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/1090983a-1c40-4609-8620-14ad49aae3ab/resource/1d6c814c-70ef-4147-aa16-a49ddb952f72/download/transit_relacio_trams.csv'
 CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2b1-4c21-4962-9acd-6db4c5ff1148/resource/2d456eb5-4ea6-4f68-9794-2f3f1a58a933/download'
 
-Highway = collections.namedtuple('Highway', 'a') # Tram
-Congestion = collections.namedtuple('Congestion', 'a')
+Highway = collections.namedtuple('Highway', 'description coords')
+Congestion = collections.namedtuple('Congestion', 'actual predicted')
 
 def exists_graph(filename):
     return os.path.isfile(filename)
 
 def download_graph(place):
-    graph = osmnx.graph_from_place(place, network_type='drive', simplify=True)
-    #graph = osmnx.utils_graph.get_digraph(graph, weight='length')
+    graph = ox.graph_from_place(place, network_type='drive', simplify=True)
+    #graph = ox.utils_graph.get_digraph(graph, weight='length')
     return graph
 
 def save_graph(graph, filename):
@@ -33,30 +36,9 @@ def load_graph(filename):
     return graph
 
 def plot_graph(graph, save=True):
-    if save:
-        osmnx.plot_graph(graph, save=True, filepath=IMAGE_FILENAME)
-    else:
-        osmnx.plot_graph(graph)
+    ox.plot_graph(graph, save=save, filepath=IMAGE_FILENAME)
 
-def download_csv(url):
-    with urllib.request.urlopen(url) as response:
-        lines = [l.decode('utf-8') for l in response.readlines()]
-    reader = csv.reader(lines, delimiter=',', quotechar='"')
-    next(reader)  # ignore first line with description
-    for line in reader:
-        way_id, description, coordinates = line
-        print(way_id, description, coordinates)
-
-def download_highways(url):
-    pass
-
-def download_congestions(url):
-    pass
-
-def build_igraph():
-    pass
-
-def test():
+def get_graph():
     # load/download graph (using cache) and plot it on the screen
     if not exists_graph(GRAPH_FILENAME):
         graph = download_graph(PLACE)
@@ -65,6 +47,36 @@ def test():
     else:
         graph = load_graph(GRAPH_FILENAME)
         print("Graph loaded")
+    return graph
+
+def download_csv(url):
+    with urllib.request.urlopen(url) as response:
+        lines = [l.decode('utf-8') for l in response.readlines()]
+    reader = csv.reader(lines, delimiter=',', quotechar='"')
+    next(reader)  # ignore first line with description
+    return reader
+
+def get_line_string_from_coords(coords):
+    coords = coords.split(",")
+    coords = [(float(coords[i]), float(coords[i+1])) for i in range(0,len(coords),2)]
+    return LineString(coords)
+
+def download_highways(url):
+    highways = {}
+    reader = download_csv(url)
+    for line in reader:
+        way_id, description, coordinates = line
+        highways[way_id] = Highway(description=description, coords=get_line_string_from_coords(coordinates))
+    return highways
+
+def download_congestions(url):
+    pass
+
+def build_igraph():
+    pass
+
+def main():
+    graph = get_graph()
     plot_graph(graph)
 
     # download highways and plot them into a PNG image
@@ -81,5 +93,20 @@ def test():
     # get 'intelligent path' between two addresses and plot it into a PNG image
     ipath = get_shortest_path_with_ispeeds(igraph, "Campus Nord", "Sagrada Família")
     plot_path(igraph, ipath, SIZE)
+
+def test():
+    graph = get_graph()
+    x = True
+    for node1, info1 in graph.nodes.items():
+        if x:
+            print(node1, info1)
+            # for each adjacent node and its information...
+            for node2, edge in graph.adj[node1].items():
+                print('    ', node2)
+                print('        ', edge)
+            x = False
+
+
+download_highways(HIGHWAYS_URL)
 
 test()
