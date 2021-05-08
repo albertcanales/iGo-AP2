@@ -1,0 +1,4 @@
+*.png
+*.graph
+*.json
+cache/
