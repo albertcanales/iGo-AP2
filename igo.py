@@ -16,7 +16,7 @@ HIGHWAYS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/1090983a-
 CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2b1-4c21-4962-9acd-6db4c5ff1148/resource/2d456eb5-4ea6-4f68-9794-2f3f1a58a933/download'
 
 Highway = collections.namedtuple('Highway', 'description coords')
-Congestion = collections.namedtuple('Congestion', 'actual predicted')
+Congestion = collections.namedtuple('Congestion', 'date actual predicted')
 
 def exists_graph(filename):
     return os.path.isfile(filename)
@@ -49,31 +49,52 @@ def get_graph():
         print("Graph loaded")
     return graph
 
-def download_csv(url):
-    with urllib.request.urlopen(url) as response:
-        lines = [l.decode('utf-8') for l in response.readlines()]
-    reader = csv.reader(lines, delimiter=',', quotechar='"')
-    next(reader)  # ignore first line with description
-    return reader
-
 def get_line_string_from_coords(coords):
     coords = coords.split(",")
     coords = [(float(coords[i]), float(coords[i+1])) for i in range(0,len(coords),2)]
     return LineString(coords)
 
 def download_highways(url):
+    with urllib.request.urlopen(url) as response:
+        lines = [l.decode('utf-8') for l in response.readlines()]
+    reader = csv.reader(lines, delimiter=',', quotechar='"')
+    next(reader)  # ignore first line with description
+
     highways = {}
-    reader = download_csv(url)
     for line in reader:
         way_id, description, coordinates = line
-        highways[way_id] = Highway(description=description, coords=get_line_string_from_coords(coordinates))
+        highways[way_id] = Highway(description, get_line_string_from_coords(coordinates))
     return highways
 
 def download_congestions(url):
-    pass
+    with urllib.request.urlopen(url) as response:
+        lines = [l.decode('utf-8') for l in response.readlines()]
+    reader = csv.reader(lines, delimiter='#', quotechar='"')
+    next(reader)  # ignore first line with description
 
-def build_igraph():
-    pass
+    congestions = {}
+    for line in reader:
+        line = list(map(int, line))
+        way_id, date, actual, predicted = line
+        if way_id not in congestions.keys() or congestions[way_id].date < date:
+            congestions[way_id] = Congestion(date, actual, predicted)
+    return congestions
+
+
+def get_igraph(graph):
+    # Se debe calcular itime con length, maxspeed i congestion. USAR función auxiliar
+    return graph # Provisional
+
+def build_igraph(graph, highways, congestions):
+    # Añadir congestions a las highways
+
+    # Añadir highways a graph
+
+    # Completar congestion del resto
+
+    # Calcular itime
+    igraph = get_igraph(graph)
+    return igraph
 
 def main():
     graph = get_graph()
@@ -105,8 +126,5 @@ def test():
                 print('    ', node2)
                 print('        ', edge)
             x = False
-
-
-download_highways(HIGHWAYS_URL)
 
 test()
