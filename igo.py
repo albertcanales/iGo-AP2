@@ -17,13 +17,14 @@ CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2
 
 Highway = collections.namedtuple('Highway', 'description coords')
 Congestion = collections.namedtuple('Congestion', 'date actual predicted')
+Highwestion = collections.namedtuple('Highwestion', 'description coords actualCongestion predictedCongestion')
 
 def exists_graph(filename):
     return os.path.isfile(filename)
 
 def download_graph(place):
     graph = ox.graph_from_place(place, network_type='drive', simplify=True)
-    #graph = ox.utils_graph.get_digraph(graph, weight='length')
+    graph = ox.utils_graph.get_digraph(graph, weight='length')
     return graph
 
 def save_graph(graph, filename):
@@ -63,7 +64,7 @@ def download_highways(url):
     highways = {}
     for line in reader:
         way_id, description, coordinates = line
-        highways[way_id] = Highway(description, get_line_string_from_coords(coordinates))
+        highways[int(way_id)] = Highway(description, get_line_string_from_coords(coordinates))
     return highways
 
 def download_congestions(url):
@@ -87,8 +88,36 @@ def get_igraph(graph):
 
 def build_igraph(graph, highways, congestions):
     # Añadir congestions a las highways
-
+    highwestions = {}
+    for it in highways.keys():
+        if congestions.get(it) is not None:
+            highwestions[it] = Highwestion(highways[it].description, highways[it].coords, congestions[it].actual, congestions[it].predicted)
+        else:
+            highwestions[it] = Highwestion(highways[it].description, highways[it].coords, 'Unknown', 'Unknown')
     # Añadir highways a graph
+    for key in congestions.keys():
+    	coords = list(highways[key].coords.coords)
+    	start = coords[0]
+    	end = coords[-1]
+    	bestStart = 0
+    	bestStartDistSqr = 10000000000
+    	bestEnd = 0
+    	bestEndDistSqr = 10000000000
+
+    	for node, info in graph.nodes.items():
+    		startDistSqr = (info['x']-start[0])**2 + (info['y']-start[1])**2
+    		if startDistSqr < bestStartDistSqr:
+    			bestStartDistSqr = startDistSqr
+    			bestStart = node
+    		endDistSqr = (info['x']-end[0])**2 + (info['y']-end[1])**2
+    		if endDistSqr < bestEndDistSqr:
+    			bestEndDistSqr = endDistSqr
+    			bestEnd = node
+
+    	#print('from', bestStart, 'to', bestEnd)
+    	#path = nx.shortest_path(graph, source = bestStart, target = bestEnd, weight = 'length')
+    	#print(type(path))
+    
 
     # Completar congestion del resto
 
@@ -126,5 +155,24 @@ def test():
                 print('    ', node2)
                 print('        ', edge)
             x = False
+    highways = download_highways(HIGHWAYS_URL)
+    y = 10
+    print(type(highways))
+    for it in highways:
+        if y > 0:
+            print(type(it))
+            print(print(highways[it].coords))
+            y -= 1
+    congestions = download_congestions(CONGESTIONS_URL)
+    y = 10
+    print(type(congestions))
+    for it in congestions:
+        if y > 0:
+            print(type(it))
+            print(it, congestions[it])
+            y -= 1
+
+    igraph = build_igraph(graph, highways, congestions)
+
 
 test()
