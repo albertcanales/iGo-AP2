@@ -24,7 +24,7 @@ def exists_graph(filename):
 
 def download_graph(place):
     graph = ox.graph_from_place(place, network_type='drive', simplify=True)
-    graph = ox.utils_graph.get_digraph(graph, weight='length')
+    #graph = ox.utils_graph.get_digraph(graph, weight='length')
     return graph
 
 def save_graph(graph, filename):
@@ -88,6 +88,7 @@ def get_igraph(graph):
 
 def build_igraph(graph, highways, congestions):
     # Añadir congestions a las highways
+    plot_graph(graph, save = False)
     highwestions = {}
     for it in highways.keys():
         if congestions.get(it) is not None:
@@ -96,27 +97,27 @@ def build_igraph(graph, highways, congestions):
             highwestions[it] = Highwestion(highways[it].description, highways[it].coords, 'Unknown', 'Unknown')
     # Añadir highways a graph
     for key in congestions.keys():
-    	coords = list(highways[key].coords.coords)
-    	start = coords[0]
-    	end = coords[-1]
-    	bestStart = 0
-    	bestStartDistSqr = 10000000000
-    	bestEnd = 0
-    	bestEndDistSqr = 10000000000
-
-    	for node, info in graph.nodes.items():
-    		startDistSqr = (info['x']-start[0])**2 + (info['y']-start[1])**2
-    		if startDistSqr < bestStartDistSqr:
-    			bestStartDistSqr = startDistSqr
-    			bestStart = node
-    		endDistSqr = (info['x']-end[0])**2 + (info['y']-end[1])**2
-    		if endDistSqr < bestEndDistSqr:
-    			bestEndDistSqr = endDistSqr
-    			bestEnd = node
-
-    	#print('from', bestStart, 'to', bestEnd)
-    	#path = nx.shortest_path(graph, source = bestStart, target = bestEnd, weight = 'length')
-    	#print(type(path))
+        #coords es la lista de coordenadas de la highway correspondiente
+        coords = list(highways[key].coords.coords)
+        #Para cada dos puntos consecutivos buscamos los nodos mas cercanos y asinamos la congestion a todos los arcos de su shortest path.
+        #Last contiene uno de los nodos
+        last = ox.distance.get_nearest_node(graph, (coords[0][1], coords[0][0]))
+        for i in range(1,len(coords)):
+            print("coords: ", coords[i])
+            #Act contiene el otro nodo
+            act = ox.get_nearest_node(graph, (coords[i][1], coords[i][0]))
+            print("act:", act)
+            print("from", last, "to", act)
+            print("last:", graph.nodes[last])
+            print(graph[last])
+            print("act:", graph.nodes[act])
+            #Path contiene el camino mas corto entre ambos
+            path = nx.shortest_path(graph, source = last, target = act, weight = 'length')
+            #Asignamos las congestiones
+            for i in range(1, len(path)):
+                graph[path[i-1]][path[i]]['congestion'] = congestions[key]
+            #Reasignamos act
+            last = act
     
 
     # Completar congestion del resto
