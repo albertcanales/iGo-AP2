@@ -23,6 +23,7 @@ def exists_graph(filename):
     return os.path.isfile(filename)
 
 def download_graph(place):
+    print("Downloading graph...")
     graph = ox.graph_from_place(place, network_type='drive', simplify=True)
     graph = ox.utils_graph.get_digraph(graph, weight='length')
     return graph
@@ -56,6 +57,7 @@ def get_line_string_from_coords(coords):
     return LineString(coords)
 
 def download_highways(url):
+    print("Downloading highways...")
     with urllib.request.urlopen(url) as response:
         lines = [l.decode('utf-8') for l in response.readlines()]
     reader = csv.reader(lines, delimiter=',', quotechar='"')
@@ -68,6 +70,7 @@ def download_highways(url):
     return highways
 
 def download_congestions(url):
+    print("Downloading congestions...")
     with urllib.request.urlopen(url) as response:
         lines = [l.decode('utf-8') for l in response.readlines()]
     reader = csv.reader(lines, delimiter='#', quotechar='"')

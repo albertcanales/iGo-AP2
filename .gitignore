@@ -2,3 +2,4 @@
 *.graph
 *.json
 cache/
+*.txt
