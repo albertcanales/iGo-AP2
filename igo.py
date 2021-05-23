@@ -38,7 +38,14 @@ def load_graph(filename):
     return graph
 
 def plot_graph(graph, save=True):
-    ox.plot_graph(nx.MultiDiGraph(graph), save=save, filepath=IMAGE_FILENAME)
+    edges = ox.graph_to_gdfs(graph, nodes=False)
+    edge_types = edges['congestion'].value_counts()
+    color_list = ox.plot.get_colors(n=len(edge_types), cmap='plasma_r')
+    color_mapper = pd.Series(color_list, index=edge_types.index).to_dict()
+
+    # get the color for each edge based on its highway type
+    ec = [color_mapper[d['congestion']] for u, v, k, d in graph.edges(keys=True, data=True)]
+    ox.plot_graph(nx.MultiDiGraph(graph), edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
 
 def get_graph():
     # load/download graph (using cache) and plot it on the screen
@@ -95,13 +102,14 @@ def build_igraph(graph, highways, congestions):
         coords = list(highways[key].coords.coords)
         coordsY = [coords[i][1] for i in range(len(coords))]
         coordsX = [coords[i][0] for i in range(len(coords))]
-        nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+        nodes = ox.nearest_nodes(graph, coordsX, coordsY)
         for i in range(1,len(nodes)):
             if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
                 path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
                 #Asignamos las congestiones
                 for i in range(1, len(path)):
-                    graph.add_edge(path[i-1], path[i], congestion = congestions[key])
+                    graph[path[i-1]][path[i]][0]['congestion'] = congestions[key].actual
+                    #graph.add_edge(, , congestion = )
     
     print("funciona")
     # Completar congestion del resto
@@ -131,33 +139,24 @@ def main():
 
 def test():
     graph = get_graph()
+    highways = download_highways(HIGHWAYS_URL)
+    congestions = download_congestions(CONGESTIONS_URL)
+
+
+    nx.set_edge_attributes(graph, -1, 'congestion')
+    igraph = build_igraph(graph, highways, congestions)
+
     x = True
-    for node1, info1 in graph.nodes.items():
+    for node1, info1 in igraph.nodes.items():
         if x:
             print(node1, info1)
             # for each adjacent node and its information...
-            for node2, edge in graph.adj[node1].items():
+            for node2, edge in igraph.adj[node1].items():
                 print('    ', node2)
                 print('        ', edge)
             x = False
-    highways = download_highways(HIGHWAYS_URL)
-    y = 10
-    print(type(highways))
-    for it in highways:
-        if y > 0:
-            print(type(it))
-            print(print(highways[it].coords))
-            y -= 1
-    congestions = download_congestions(CONGESTIONS_URL)
-    y = 10
-    print(type(congestions))
-    for it in congestions:
-        if y > 0:
-            print(type(it))
-            print(it, congestions[it])
-            y -= 1
 
-    igraph = build_igraph(graph, highways, congestions)
+    plot_graph(igraph)
 
 
 test()
