@@ -18,6 +18,7 @@ CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2
 Highway = collections.namedtuple('Highway', 'description coords')
 Congestion = collections.namedtuple('Congestion', 'date actual predicted')
 Highwestion = collections.namedtuple('Highwestion', 'description coords actualCongestion predictedCongestion')
+Location = collections.namedtuple('Location', 'Latitud Longitud')
 
 def exists_graph(filename):
     return os.path.isfile(filename)
@@ -90,6 +91,22 @@ def download_congestions(url):
             congestions[way_id] = Congestion(date, actual, predicted)
     return congestions
 
+def shortest_path(graph, source, target):
+    return nx.shortest_path(graph, source=source, target=target, weight='itime')
+
+def get_location(graph, string):
+    parts = string.split(" ")
+    try:
+        x = float(parts[0])
+        y = float(parts[1])
+        node = ox.get_nearest_nodes(graph, [x], [y])[0]
+        return Location(graph.nodes[node]['x'], graph.nodes[node]['y'])
+    except:
+        location = ox.geocode(string)
+        node = ox.get_nearest_node(graph, location)
+        nodeInfo = graph.nodes[node]
+        return Location(nodeInfo['x'], nodeInfo['y'])
+
 
 def get_igraph(graph):
     # Se debe calcular itime con length, maxspeed i congestion. USAR función auxiliar
@@ -97,28 +114,25 @@ def get_igraph(graph):
         for node2 in graph.neighbors(node1):
             #print(graph[node1][node2][0])
             try:
-                graph[node1][node2][0]['itime'] = graph[node1][node2][0]['length'] / float(graph[node1][node2][0]['maxspeed'])
+                graph[node1][node2]['itime'] = graph[node1][node2]['length'] / float(graph[node1][node2]['maxspeed'])
             except:
-                graph[node1][node2][0]['itime'] = graph[node1][node2][0]['length'] / 30
-            if graph[node1][node2][0]['congestion'] == 0:
-                graph[node1][node2][0]['itime'] /= 0.7
-            elif graph[node1][node2][0]['congestion'] == 2:
-                graph[node1][node2][0]['itime'] /= 0.8
-            elif graph[node1][node2][0]['congestion'] == 3:
-                graph[node1][node2][0]['itime'] /= 0.6
-            elif graph[node1][node2][0]['congestion'] == 4:
-                graph[node1][node2][0]['itime'] /= 0.4
-            elif graph[node1][node2][0]['congestion'] == 5:
-                graph[node1][node2][0]['itime'] /= 0.2
-            elif graph[node1][node2][0]['congestion'] == 6:
-                graph[node1][node2][0]['itime'] = float('inf')
+                graph[node1][node2]['itime'] = graph[node1][node2]['length'] / 30
+            if graph[node1][node2]['congestion'] == 0:
+                graph[node1][node2]['itime'] /= 0.7
+            elif graph[node1][node2]['congestion'] == 2:
+                graph[node1][node2]['itime'] /= 0.8
+            elif graph[node1][node2]['congestion'] == 3:
+                graph[node1][node2]['itime'] /= 0.6
+            elif graph[node1][node2]['congestion'] == 4:
+                graph[node1][node2]['itime'] /= 0.4
+            elif graph[node1][node2]['congestion'] == 5:
+                graph[node1][node2]['itime'] /= 0.2
+            elif graph[node1][node2]['congestion'] == 6:
+                graph[node1][node2]['itime'] = float('inf')
     return graph # Provisional
 
 def build_igraph(graph, highways, congestions):
     # Añadir congestions a las highways
-    for node1 in graph.nodes:
-        for node2 in graph.neighbors(node1):
-            graph[node1][node2][0]['congestion'] = 0;
 
     for key in congestions.keys():
         #coords es la lista de coordenadas de la highway correspondiente
@@ -131,7 +145,7 @@ def build_igraph(graph, highways, congestions):
                 path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
                 #Asignamos las congestiones
                 for i in range(1, len(path)):
-                    graph[path[i-1]][path[i]][0]['congestion'] = congestions[key].actual
+                    graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
                     #graph.add_edge(, , congestion = )
     
     # Completar congestion del resto
@@ -167,7 +181,10 @@ def test():
     congestions = download_congestions(CONGESTIONS_URL)
 
 
-    nx.set_edge_attributes(graph, -1, 'congestion')
+    nx.set_edge_attributes(graph, 0, 'congestion')
+
+    print(get_location(graph, "Plaça d'Espanya"))
+
     igraph = build_igraph(graph, highways, congestions)
 
     x = True
