@@ -1,13 +1,35 @@
-from telegram.ext import Updater, CommandHandler
+from telegram import ParseMode
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
+def send_message(context, update, message):
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
 
 def start(update, context):
-    print(update)
-    print(context)
-    botname = context.bot.username
-    username = update.effective_chat.username
-    fullname = update.effective_chat.first_name + ' ' + update.effective_chat.last_name
-    missatge = "Tu ets en %s (%s) i jo soc el %s." % (fullname, username, botname)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=missatge)
+    message = '''I am *iGo* 🤖️ and I can take you wherever you want from Barcelona! Type /help to see what I can do for you'''
+    send_message(context, update, message)
+
+def help(update, context):
+    message = '''
+    Hi! Here's what I am capable of:
+- /start: I will guide you to get to your destination
+- /help: I will show available commands (recursion, yay!)
+- /author: I will show you my creators
+- /go `place`: Tell me a `place` from Barcelona (name or coordinates) and I will show you the optimal path.
+- /where: I will show your actual position.
+    '''
+    send_message(context, update, message)
+
+
+
+def author(update, context):
+    message = '''My creators are:
+- Javier Nistal Salas
+- Albert Canales Ros'''
+    send_message(context, update, message)
+
+
+def go(update, context):
+    pass
 
 def where(update, context):
     try:
@@ -28,6 +50,12 @@ def where(update, context):
             chat_id=update.effective_chat.id,
             text='💣')
 
+def pos(update, context):
+    message = "How do you know about this, are you a hacker? Please don't hurt me!\n"
+    # TODO Pillar la posició
+    message += "Anyways, *your location has been updated*"
+    send_message(context, update, message)
+
 
 
 TOKEN = open('token.txt').read().strip()
@@ -35,5 +63,9 @@ updater = Updater(token=TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
 dispatcher.add_handler(CommandHandler('start', start))
-#dispatcher.add_handler(MessageHandler(Filters.location, where))
+dispatcher.add_handler(CommandHandler('help', help))
+dispatcher.add_handler(CommandHandler('author', author))
+dispatcher.add_handler(CommandHandler('go', go))
+dispatcher.add_handler(CommandHandler('pos', pos))
+dispatcher.add_handler(MessageHandler(Filters.location, where))
 updater.start_polling()
