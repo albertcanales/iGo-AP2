@@ -1,7 +1,8 @@
 from telegram import ParseMode, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from igo import Location, get_location
+from igo import *
 
+igraph = None
 location = None
 
 def send_message(update, context, message):
@@ -84,6 +85,10 @@ def pos(update, context):
     send_message(update, context, message)
 
 def main():
+
+    global igraph
+    igraph = iGraph() 
+
     TOKEN = open('token.txt').read().strip()
     updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher

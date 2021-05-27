@@ -2,10 +2,11 @@
 
 ## igo.py
 - No utilitzar os per la lectura, lliçons (Canales)
-- Completar congestions
+- Utilitzar SIZE, al lliçons està com fer-lo servir
+- ~~Completar congestions~~
 - Limpiar eurística para itime
 - Tener en cuenta ángulos y esas cosas
-- Separar graph en una clase
+- ~~Separar graph en una clase~~
 - Métodos que no requieran un graph
 - Comentar código, elecciones de diseño
 
@@ -13,6 +14,7 @@
 - Posar bonica output (treure interacció?)
 - Mètode go (requereix coses abans)
 - Fer StaticMap a pos
+- Fer que les locations vagin amb l'usuari, no que sigui global
 
 ## General
 - Documentar codi
