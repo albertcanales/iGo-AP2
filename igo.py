@@ -99,11 +99,11 @@ def get_location(graph, string):
     try:
         x = float(parts[0])
         y = float(parts[1])
-        node = ox.get_nearest_nodes(graph, [x], [y])[0]
+        node = ox.nearest_nodes(graph, [x], [y])[0]
         return Location(graph.nodes[node]['x'], graph.nodes[node]['y'])
     except:
         location = ox.geocode(string)
-        node = ox.get_nearest_node(graph, location)
+        node = ox.nearest_nodes(graph, location)
         nodeInfo = graph.nodes[node]
         return Location(nodeInfo['x'], nodeInfo['y'])
 
@@ -132,6 +132,7 @@ def get_igraph(graph):
     return graph # Provisional
 
 def build_igraph(graph, highways, congestions):
+    nx.set_edge_attributes(graph, 0, 'congestion')
     # Añadir congestions a las highways
 
     for key in congestions.keys():
@@ -139,7 +140,7 @@ def build_igraph(graph, highways, congestions):
         coords = list(highways[key].coords.coords)
         coordsY = [coords[i][1] for i in range(len(coords))]
         coordsX = [coords[i][0] for i in range(len(coords))]
-        nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+        nodes = ox.nearest_nodes(graph, coordsX, coordsY)
         for i in range(1,len(nodes)):
             if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
                 path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
@@ -158,32 +159,27 @@ def build_igraph(graph, highways, congestions):
 
 def main():
     graph = get_graph()
-    plot_graph(graph)
+    #plot_graph(graph)
 
     # download highways and plot them into a PNG image
     highways = download_highways(HIGHWAYS_URL)
-    plot_highways(highways, 'highways.png', SIZE)
+    #plot_highways(highways, 'highways.png', SIZE)
 
     # download congestions and plot them into a PNG image
     congestions = download_congestions(CONGESTIONS_URL)
-    plot_congestions(highways, congestions, 'congestions.png', SIZE)
+    #plot_congestions(highways, congestions, 'congestions.png', SIZE)
 
     # get the 'intelligent graph' version of a graph taking into account the congestions of the highways
     igraph = build_igraph(graph, highways, congestions)
 
     # get 'intelligent path' between two addresses and plot it into a PNG image
-    ipath = get_shortest_path_with_ispeeds(igraph, "Campus Nord", "Sagrada Família")
-    plot_path(igraph, ipath, SIZE)
+    # ipath = get_shortest_path_with_ispeeds(igraph, "Campus Nord", "Sagrada Família")
+    # plot_path(igraph, ipath, SIZE)
 
 def test():
     graph = get_graph()
     highways = download_highways(HIGHWAYS_URL)
     congestions = download_congestions(CONGESTIONS_URL)
-
-
-    nx.set_edge_attributes(graph, 0, 'congestion')
-
-    print(get_location(graph, "Plaça d'Espanya"))
 
     igraph = build_igraph(graph, highways, congestions)
 
@@ -200,4 +196,4 @@ def test():
     #plot_graph(igraph)
 
 
-test()
+main()

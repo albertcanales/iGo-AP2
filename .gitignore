@@ -3,3 +3,4 @@
 *.json
 cache/
 *.txt
+__pycache__/*
