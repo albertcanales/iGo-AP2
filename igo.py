@@ -39,14 +39,16 @@ def load_graph(filename):
     return graph
 
 def plot_graph(graph, save=True):
-    edges = ox.graph_to_gdfs(graph, nodes=False)
+    multiGraph = nx.MultiDiGraph(graph)
+
+    edges = ox.graph_to_gdfs(multiGraph, nodes=False)
     edge_types = edges['congestion'].value_counts()
     color_list = ox.plot.get_colors(n=len(edge_types), cmap='plasma_r')
     color_mapper = pd.Series(color_list, index=edge_types.index).to_dict()
 
     # get the color for each edge based on its highway type
-    ec = [color_mapper[d['congestion']] for u, v, k, d in graph.edges(keys=True, data=True)]
-    ox.plot_graph(nx.MultiDiGraph(graph), edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
+    ec = [color_mapper[d['congestion']] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
+    ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
 
 def get_graph():
     # load/download graph (using cache) and plot it on the screen
@@ -92,7 +94,9 @@ def download_congestions(url):
     return congestions
 
 def shortest_path(graph, source, target):
-    return nx.shortest_path(graph, source=source, target=target, weight='itime')
+    if nx.has_path(graph, source=source, target=target):
+        return nx.shortest_path(graph, source=source, target=target, weight='itime')
+    return None
 
 def get_location(graph, string):
     parts = string.split(" ")
@@ -118,17 +122,11 @@ def get_igraph(graph):
             except:
                 graph[node1][node2]['itime'] = graph[node1][node2]['length'] / 30
             if graph[node1][node2]['congestion'] == 0:
-                graph[node1][node2]['itime'] /= 0.7
-            elif graph[node1][node2]['congestion'] == 2:
-                graph[node1][node2]['itime'] /= 0.8
-            elif graph[node1][node2]['congestion'] == 3:
-                graph[node1][node2]['itime'] /= 0.6
-            elif graph[node1][node2]['congestion'] == 4:
-                graph[node1][node2]['itime'] /= 0.4
-            elif graph[node1][node2]['congestion'] == 5:
-                graph[node1][node2]['itime'] /= 0.2
-            elif graph[node1][node2]['congestion'] == 6:
                 graph[node1][node2]['itime'] = float('inf')
+            elif graph[node1][node2]['congestion'] >= 5.99:
+                graph[node1][node2]['itime'] = float('inf')
+            else:
+                graph[node1][node2]['itime'] /= 1-(graph[node1][node2]['congestion']-1)/6
     return graph # Provisional
 
 def build_igraph(graph, highways, congestions):
@@ -140,7 +138,7 @@ def build_igraph(graph, highways, congestions):
         coords = list(highways[key].coords.coords)
         coordsY = [coords[i][1] for i in range(len(coords))]
         coordsX = [coords[i][0] for i in range(len(coords))]
-        nodes = ox.nearest_nodes(graph, coordsX, coordsY)
+        nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
         for i in range(1,len(nodes)):
             if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
                 path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
@@ -149,12 +147,36 @@ def build_igraph(graph, highways, congestions):
                     graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
                     #graph.add_edge(, , congestion = )
     
+
     # Completar congestion del resto
+    for iteration in range(10):
+        for node1, info1 in graph.nodes.items():
+            congestionSum = 0
+            congestionCount = 0
+            for u, v, data in graph.in_edges(node1, data = True):
+                if data['congestion'] > 0:
+                    congestionSum += data['congestion']
+                    congestionCount += 1
+            for u, v, data in graph.out_edges(node1, data = True):
+                if data['congestion'] > 0:
+                    congestionSum += data['congestion']
+                    congestionCount += 1
+            if congestionCount > 0:
+                averageCongestion = congestionSum//congestionCount
+                for u, v, data in graph.in_edges(node1, data = True):
+                    if data['congestion'] == 0:
+                        graph[u][v]['congestion'] = max(1, averageCongestion-1)
+                for u, v, data in graph.out_edges(node1, data = True):
+                    if data['congestion'] == 0:
+                        graph[u][v]['congestion'] = max(1, averageCongestion)
 
+    for node1, info1 in graph.nodes.items():
+        for u, v, data in graph.in_edges(node1, data = True):
+            if data['congestion'] == 0:
+                graph[u][v]['congestion'] = 1
 
-
-    # Calcular itime
     igraph = get_igraph(graph)
+    
     return igraph
 
 def main():
@@ -183,17 +205,23 @@ def test():
 
     igraph = build_igraph(graph, highways, congestions)
 
-    x = True
+    infoCount = 0
+    notInfoCount = 0
     for node1, info1 in igraph.nodes.items():
-        if x:
-            print(node1, info1)
-            # for each adjacent node and its information...
-            for node2, edge in igraph.adj[node1].items():
-                print('    ', node2)
-                print('        ', edge)
-            x = False
+        # for each adjacent node and its information...
+        hasInfo = False
+        for node2, edge in igraph.adj[node1].items():
+            if edge['congestion'] >= 1:
+                hasInfo = True
+        if hasInfo:
+            infoCount += 1
+        else:
+            notInfoCount += 1
 
-    #plot_graph(igraph)
+    print(infoCount)
+    print(notInfoCount)
+
+    plot_graph(igraph)
 
 
-main()
+test()
