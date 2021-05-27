@@ -9,12 +9,14 @@
 - ~~Separar graph en una clase~~
 - Métodos que no requieran un graph
 - Comentar código, elecciones de diseño
+- Que actualice valores cada 5 min
 
 ## bot.py
 - Posar bonica output (treure interacció?)
 - Mètode go (requereix coses abans)
 - Fer StaticMap a pos
-- Fer que les locations vagin amb l'usuari, no que sigui global
+- ~~Fer que les locations vagin amb l'usuari, no que sigui global~~
+- Treure boto request (reiniciar conversa?)
 
 ## General
 - Documentar codi

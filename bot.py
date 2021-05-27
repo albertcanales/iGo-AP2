@@ -1,21 +1,25 @@
 from telegram import ParseMode, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from staticmap import StaticMap, CircleMarker
 from igo import *
 
 igraph = None
-location = None
+locations = {}
+
+def get_user(update):
+    '''Auxiliary function to get username'''
+    return update.message.chat.username
 
 def send_message(update, context, message):
     '''Auxiliary function to simplify calls'''
     context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
 
 def set_location(update, context):
-    '''Given a location message, it updates the global location variable'''
-    global location
-    location = Location(update.message.location.latitude, update.message.location.longitude)
+    '''Given a location message, it updates it to locations'''
+    global locations
+    locations[get_user(update)] = Location(update.message.location.latitude, update.message.location.longitude)
     send_message(update, context, "I've updated your location! If only I had legs to move as well...")
-    print(location)
-    
+    print("Given location:", locations[get_user(update)])
 
 def start(update, context):
     '''Command /start. General description of the bot'''
@@ -49,13 +53,13 @@ def go(update, context):
     pass
 
 def where(update, context):
-    global location
-    print(location)
-    if location is not None:
+    global locations
+    if get_user(update) in locations.keys():
+        print("Location to show:", locations[get_user(update)])
         try:
-            fitxer = "%d.png" % random.randint(1000000, 9999999)
+            fitxer = "%s.png" % get_user(update)
             mapa = StaticMap(500, 500)
-            mapa.add_marker(CircleMarker(location, 'blue', 10))
+            mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
             imatge = mapa.render()
             imatge.save(fitxer)
             context.bot.send_photo(
@@ -69,17 +73,20 @@ def where(update, context):
                 text='💣')
         send_message(update, context, "Send me your actual location if you want to change it")
     else:
+        print("No location to show")
         send_message(update, context, "I don't have your location 😔. Send it so I can guide you!")
     
 
 def pos(update, context):
     '''Secret command /pos. Updates the global location with the given one'''
+    global igraph
     message = "How do you know about this, are you a hacker? Please don't hurt me!\n"
-    loc = get_location(update.message.text)
+    loc = igraph.get_location(update.message.text)
     if loc is not None:
-        global location
-        location = loc
+        global locations
+        locations[get_user(update)] = loc
         message += "Got it! Your location has been *updated*"
+        print("Manual location:", loc)
     else:
         message += "Your location is *not valid*, give me the coordinates or a name"
     send_message(update, context, message)
@@ -101,5 +108,7 @@ def main():
     dispatcher.add_handler(CommandHandler('where', where))
     dispatcher.add_handler(MessageHandler(Filters.location, set_location))
     updater.start_polling()
+
+    print("Telegram bot started")
 
 main()

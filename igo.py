@@ -18,7 +18,7 @@ CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2
 Highway = collections.namedtuple('Highway', 'description coords')
 Congestion = collections.namedtuple('Congestion', 'date actual predicted')
 Highwestion = collections.namedtuple('Highwestion', 'description coords actualCongestion predictedCongestion')
-Location = collections.namedtuple('Location', 'Latitud Longitud')
+Location = collections.namedtuple('Location', 'lat lon')
 
 class iGraph:
 
@@ -51,12 +51,12 @@ class iGraph:
         try:
             x = float(parts[0])
             y = float(parts[1])
-            node = ox.nearest_nodes(graph, [x], [y])[0]
-            return Location(graph.nodes[node]['x'], graph.nodes[node]['y'])
+            node = ox.nearest_nodes(self.igraph, [x], [y])[0]
+            return Location(self.igraph.nodes[node]['x'], self.igraph.nodes[node]['y'])
         except:
             location = ox.geocode(string)
-            node = ox.nearest_nodes(graph, location)
-            nodeInfo = graph.nodes[node]
+            node = ox.nearest_nodes(self.igraph, location[0], location[1])
+            nodeInfo = self.igraph.nodes[node]
             return Location(nodeInfo['x'], nodeInfo['y'])
 
     def get_graph(self):
@@ -154,6 +154,7 @@ class iGraph:
         return graph # Provisional
 
     def _build_igraph(self, graph, highways, congestions):
+        print("Building iGraph...")
         nx.set_edge_attributes(graph, 0, 'congestion')
         # Añadir congestions a las highways
 
@@ -162,7 +163,7 @@ class iGraph:
             coords = list(highways[key].coords.coords)
             coordsY = [coords[i][1] for i in range(len(coords))]
             coordsX = [coords[i][0] for i in range(len(coords))]
-            nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+            nodes = ox.nearest_nodes(graph, coordsX, coordsY)
             for i in range(1,len(nodes)):
                 if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
                     path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
