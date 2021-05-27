@@ -1,25 +1,22 @@
-![](WIDE.png)
+# TODOs
 
-# Petits Todos
-- no utilitar os per exists_graph
-- diferenciar mètodes privats i la API
+## igo.py
+- No utilitzar os per la lectura, lliçons (Canales)
+- Completar congestions
+- Limpiar eurística para itime
+- Tener en cuenta ángulos y esas cosas
+- Separar graph en una clase
+- Métodos que no requieran un graph
+- Comentar código, elecciones de diseño
 
-# igo.py
+## bot.py
+- Posar bonica output (treure interacció?)
+- Mètode go (requereix coses abans)
+- Fer StaticMap a pos
 
-1. Llegir llistes highways i congestions
-2. IGRAPH
-	- Juntar congestions a highways
-	- Juntar highways a graph
-	- Completar congestions restants
-	- Assignar itime a arestes
-3. Calcular ipath (gg ez, 1 línea)
+## General
+- Documentar codi
+- Diferenciar mètodes publics/privats API
+- Seguir regles PEP (0 DIRECTE!!!)
+- Fer README amb documentació
 
-# bot.py
-
-
-
-
-
-
-
-COMENTAR COMO UNOS HIJOS DE PUTA
