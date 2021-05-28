@@ -62,7 +62,7 @@ class iGraph:
     def get_graph(self):
         # load/download graph (using cache) and plot it on the screen
         if not self._exists_graph(GRAPH_FILENAME):
-            graph = self.download_graph(PLACE)
+            graph = self._download_graph(PLACE)
             self._save_graph(graph, GRAPH_FILENAME)
             print("Graph generated")
         else:
@@ -141,7 +141,7 @@ class iGraph:
             for node2 in graph.neighbors(node1):
                 if ('maxspeed' in graph[node1][node2]):
                     #Si hay datos de la velocidad máxima asginamos el tiempo que se tardaría en recorrer la calle.
-                    graph[node1][node2]['itime'] = graph[node1][node2]['length'] / int(graph[node1][node2]['maxspeed'])
+                    graph[node1][node2]['itime'] = graph[node1][node2]['length'] / self._get_speed(graph[node1][node2]['maxspeed'])
                 else:
                     #Si no hay datos de la velocidad máxima 30 km/h es una buena estimación.
                     graph[node1][node2]['itime'] = graph[node1][node2]['length'] / 30
@@ -173,7 +173,7 @@ class iGraph:
                 coordsX = [coords[i][0] for i in range(len(coords))]
 
                 #Nodes es la lista de nodos de la highway correspondiente
-                nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+                nodes = ox.nearest_nodes(graph, coordsX, coordsY)
                 for i in range(1,len(nodes)):
                     #En cada tramo de la highway asignamos la congestion al camino mas corto entre los nodos que une
                     if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
@@ -222,3 +222,10 @@ class iGraph:
         print("Done")
 
         return igraph
+
+    def _get_speed(self, speeds):
+        ''' Parsing for max_speed, sometimes int and sometimes list(string)'''
+        if isinstance(speeds,int):
+            return speeds
+        else:
+            return sum(list(map(int, speeds))) / len(speeds)

@@ -3,23 +3,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from staticmap import StaticMap, CircleMarker
 from igo import *
 
-igraph = None
-locations = {}
-
-def get_user(update):
-    '''Auxiliary function to get username'''
-    return update.message.chat.username
-
-def send_message(update, context, message):
-    '''Auxiliary function to simplify calls'''
-    context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
-
-def set_location(update, context):
-    '''Given a location message, it updates it to locations'''
-    global locations
-    locations[get_user(update)] = Location(update.message.location.latitude, update.message.location.longitude)
-    send_message(update, context, "I've updated your location! If only I had legs to move as well...")
-    print("Given location:", locations[get_user(update)])
+igraph = None # The iGraph used by the bot
+locations = {} # Contains the location for each user
 
 def start(update, context):
     '''Command /start. General description of the bot'''
@@ -57,15 +42,7 @@ def where(update, context):
     if get_user(update) in locations.keys():
         print("Location to show:", locations[get_user(update)])
         try:
-            fitxer = "%s.png" % get_user(update)
-            mapa = StaticMap(500, 500)
-            mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
-            imatge = mapa.render()
-            imatge.save(fitxer)
-            context.bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=open(fitxer, 'rb'))
-            os.remove(fitxer)
+            send_map(update, context, locations[get_user(update)])
         except Exception as e:
             print(e)
             context.bot.send_message(
@@ -91,10 +68,40 @@ def pos(update, context):
         message += "Your location is *not valid*, give me the coordinates or a name"
     send_message(update, context, message)
 
+
+
+def set_location(update, context):
+    '''Given a location message, it updates it to locations'''
+    global locations
+    locations[get_user(update)] = Location(update.message.location.latitude, update.message.location.longitude)
+    send_message(update, context, "I've updated your location! If only I had legs to move as well...")
+    print("Given location:", locations[get_user(update)])
+
+def send_message(update, context, message):
+    '''Auxiliary function to simplify calls'''
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
+
+def send_map(update, context, location):
+    fitxer = "%s.png" % get_user(update)
+    mapa = StaticMap(500, 500)
+    mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
+    imatge = mapa.render()
+    imatge.save(fitxer)
+    context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=open(fitxer, 'rb'))
+    os.remove(fitxer)
+
+def get_user(update):
+    '''Auxiliary function to get username'''
+    return update.message.chat.username
+
 def main():
 
     global igraph
     igraph = iGraph() 
+
+    print("Starting bot...")
 
     TOKEN = open('token.txt').read().strip()
     updater = Updater(token=TOKEN, use_context=True)
@@ -109,6 +116,6 @@ def main():
     dispatcher.add_handler(MessageHandler(Filters.location, set_location))
     updater.start_polling()
 
-    print("Telegram bot started")
+    print("Bot started")
 
 main()
