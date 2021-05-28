@@ -35,30 +35,36 @@ My creators are:
 
 
 def go(update, context):
-    pass
+    global igraph
+    text = update.message.text.split(None, 1)[1] # Removes the first word
+    target = igraph.get_location(text)
+    if target is not None:
+        if get_user(update) in locations.keys():
+            path = igraph.get_shortest_path(locations[get_user(update)], target)
+            print(path)
+            # Aquí se debería mostrar la imagen
+        else:
+            send_message(update, context, "I don't have your location 😔. Send it so I can guide you!")
+    else:
+        send_message(update, context, "Your location is *not valid*, give me the coordinates or a name")
 
 def where(update, context):
     global locations
     if get_user(update) in locations.keys():
         print("Location to show:", locations[get_user(update)])
-        try:
-            send_map(update, context, locations[get_user(update)])
-        except Exception as e:
-            print(e)
-            context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text='💣')
+        send_map(update, context, locations[get_user(update)])
         send_message(update, context, "Send me your actual location if you want to change it")
     else:
         print("No location to show")
-        send_message(update, context, "I don't have your location 😔. Send it so I can guide you!")
+        send_message(update, context, "I don't have your location 😔. Send it to me!")
     
 
 def pos(update, context):
     '''Secret command /pos. Updates the global location with the given one'''
     global igraph
     message = "How do you know about this, are you a hacker? Please don't hurt me!\n"
-    loc = igraph.get_location(update.message.text)
+    text = update.message.text.split(None, 1)[1] # Removes the first word
+    loc = igraph.get_location(text)
     if loc is not None:
         global locations
         locations[get_user(update)] = loc
@@ -82,15 +88,24 @@ def send_message(update, context, message):
     context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
 
 def send_map(update, context, location):
-    fitxer = "%s.png" % get_user(update)
-    mapa = StaticMap(500, 500)
-    mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
-    imatge = mapa.render()
-    imatge.save(fitxer)
-    context.bot.send_photo(
-        chat_id=update.effective_chat.id,
-        photo=open(fitxer, 'rb'))
-    os.remove(fitxer)
+    try:
+        fitxer = "%s.png" % get_user(update)
+        mapa = StaticMap(500, 500)
+        mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
+        print("pre")
+        imatge = mapa.render()
+        print("mid")
+        imatge.save(fitxer)
+        print("pos")
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=open(fitxer, 'rb'))
+        os.remove(fitxer)
+    except Exception as e:
+            print(e)
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text='💣')
 
 def get_user(update):
     '''Auxiliary function to get username'''
@@ -100,6 +115,17 @@ def main():
 
     global igraph
     igraph = iGraph() 
+
+    fitxer = "%s.png" % "prova"
+    mapa = StaticMap(500, 500)
+    mapa.add_marker(CircleMarker(igraph.get_location("Camp Nou"), 'blue', 10))
+    print("pre")
+    imatge = mapa.render()
+    print("mid")
+    imatge.save(fitxer)
+    print("pos")
+    #os.remove(fitxer)
+
 
     print("Starting bot...")
 

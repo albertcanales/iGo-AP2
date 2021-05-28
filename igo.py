@@ -41,23 +41,29 @@ class iGraph:
         # ipath = get_shortest_path_with_ispeeds(igraph, "Campus Nord", "Sagrada Família")
         # plot_path(igraph, ipath, SIZE)
 
-    def shortest_path(self, source, target):
-        if nx.has_path(graph, source=source, tryarget=target):
-            return nx.shortest_path(graph, source=source, target=target, weight='itime')
+    def get_shortest_path(self, source_loc, target_loc):
+        source = ox.nearest_nodes(self.igraph, source_loc.lat, source_loc.lon)
+        target = ox.nearest_nodes(self.igraph, target_loc.lat, target_loc.lon)
+        if nx.has_path(self.igraph, source=source, target=target):
+            node_path = nx.shortest_path(self.igraph, source=source, target=target, weight='itime')
+            print(node_path)
+            return self._get_path_coords(node_path)
         return None
 
     def get_location(self, string):
-        parts = string.split(" ")
-        try:
-            x = float(parts[0])
-            y = float(parts[1])
-            node = ox.nearest_nodes(self.igraph, [x], [y])[0]
-            return Location(self.igraph.nodes[node]['x'], self.igraph.nodes[node]['y'])
-        except:
-            location = ox.geocode(string)
-            node = ox.nearest_nodes(self.igraph, location[0], location[1])
-            nodeInfo = self.igraph.nodes[node]
-            return Location(nodeInfo['x'], nodeInfo['y'])
+        print(string)
+        if string is not None:
+            parts = string.split(" ")
+            try:
+                x = float(parts[0])
+                y = float(parts[1])
+                node = ox.nearest_nodes(self.igraph, [x], [y])[0]
+                return Location(self.igraph.nodes[node]['y'], self.igraph.nodes[node]['x'])
+            except:
+                location = ox.geocode(string)
+                node = ox.nearest_nodes(self.igraph, location[0], location[1])
+                node_info = self.igraph.nodes[node]
+                return Location(node_info['y'], node_info['x'])
 
     def get_graph(self):
         # load/download graph (using cache) and plot it on the screen
@@ -82,7 +88,7 @@ class iGraph:
         ec = [color_mapper[d['congestion']] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
         ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
 
-    # Functions for getting input
+    # Functions for input / output
 
     def _exists_graph(self, filename):
         return os.path.isfile(filename)
@@ -133,6 +139,20 @@ class iGraph:
             if way_id not in congestions.keys() or congestions[way_id].date < date:
                 congestions[way_id] = Congestion(date, actual, predicted)
         return congestions
+
+    def _get_speed(self, speeds):
+        ''' Parsing for max_speed, sometimes int and sometimes list(string)'''
+        if isinstance(speeds,int):
+            return speeds
+        else:
+            return sum(list(map(int, speeds))) / len(speeds)
+
+    def _get_path_coords(self, path):
+        path = []
+        for node in path:
+            node_info = self.igraph.nodes[node]
+            path.append([node_info['y'], node_info['x']])
+        return path
 
     # Functions for building the iGraph
 
@@ -222,10 +242,3 @@ class iGraph:
         print("Done")
 
         return igraph
-
-    def _get_speed(self, speeds):
-        ''' Parsing for max_speed, sometimes int and sometimes list(string)'''
-        if isinstance(speeds,int):
-            return speeds
-        else:
-            return sum(list(map(int, speeds))) / len(speeds)
