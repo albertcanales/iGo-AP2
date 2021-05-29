@@ -24,6 +24,7 @@ Location = collections.namedtuple('Location', 'lat lon')
 class iGraph:
 
     def __init__(self):
+        '''The class constructor'''
         graph = self.get_graph()
         #plot_graph(graph)
 
@@ -41,14 +42,27 @@ class iGraph:
         self._update_igraph()
 
     def get_shortest_path(self, source_loc, target_loc):
-        source = ox.get_nearest_nodes(self._igraph, [source_loc.lat], [source_loc.lon])[0]
-        target = ox.get_nearest_nodes(self._igraph, [target_loc.lat], [target_loc.lon])[0]
-        if nx.has_path(self._igraph, source=source, target=target):
+        '''
+        Computes the shortest path between the two specified locations
+        Params:
+            - source_loc: A location with the source of the path
+            - target_loc: A location with the target of the path
+        Returns a list of locations along the resulting path, if there is no path None is returned.
+        '''
+        source = ox.get_nearest_nodes(self.igraph, [source_loc.lat], [source_loc.lon])[0]
+        target = ox.get_nearest_nodes(self.igraph, [target_loc.lat], [target_loc.lon])[0]
+        if nx.has_path(self.igraph, source=source, target=target):
             node_path = nx.shortest_path(self._igraph, source=source, target=target, weight='itime')
             return self._get_path_coords(node_path)
         return None
 
     def get_location(self, string):
+        '''
+        Gets the locationo of the node associated with the given string.
+        Params:
+            - string: A string that can either be the name of a location or two space separated decimal numbers representing the coordinates.
+        Returns the resulting location.
+        '''
         if string is not None:
             parts = string.split(" ")
             try:
@@ -63,6 +77,10 @@ class iGraph:
                 return Location(node_info['x'], node_info['y'])
 
     def get_graph(self):
+        '''
+        Gets the graph of the streets from cache or downloads it from the internet if necessary.
+        Returns the obtained graph.
+        '''
         # load/download graph (using cache) and plot it on the screen
         if not self._exists_graph(GRAPH_FILENAME):
             graph = self._download_graph(PLACE)
@@ -74,6 +92,14 @@ class iGraph:
         return graph
 
     def plot_graph(self, graph, attr=None, save=True):
+        '''
+        Plots the given graph.
+        Params:
+            - graph: The graph to plot.
+            - attr = None: The name of the attribute the color should depends on.
+            - save = True: A boolean that determines whether the resulting image should be saved.
+        This function does not return anything.
+        '''
         multiGraph = nx.MultiDiGraph(graph)
 
         if attr is None:
@@ -92,29 +118,66 @@ class iGraph:
     # Functions for input / output
 
     def _exists_graph(self, filename):
+        '''
+        Determines whether the graph of the city is stored in cache.
+        Params:
+            - Filename: A string with the name the file with the graph should have.
+        Returns a boolean with the result.
+        '''
         return os.path.isfile(filename)
 
     def _download_graph(self, place):
+        '''
+        Downloads the graph of the streets from the specified place.
+        Params:
+            - Place: A string specifying the route the graph should be downloaded from
+        Returns the obtained graph.
+        '''
         print("Downloading graph...")
         graph = ox.graph_from_place(place, network_type='drive', simplify=True)
         graph = ox.utils_graph.get_digraph(graph, weight='length')
         return graph
 
     def _save_graph(self, graph, filename):
+        '''
+        Saves the graph in cache so it won't have to be downloaded again.
+        Params:
+            - graph: The graph to be saved.
+            - filename: A string with the name of the file that will store the graph.
+        This function does not return anything.
+        '''
         with open(filename, 'wb') as file:
             pickle.dump(graph, file)
 
     def _load_graph(self, filename):
+        '''
+        Loads the graph of the streets from cache.
+        Params:
+            - filename: The name of the file the graph should be extracted from.
+        Returns the obtained graph.
+        '''
         with open(filename, 'rb') as file:
             graph = pickle.load(file)
         return graph
 
     def _get_line_string_from_coords(self, coords):
+        '''
+        Converts a string with coordinates separated by comas to linestring.
+        Params:
+            - coords: A string containing the aforementioned coma separated coordinates.
+        Returns the resulting linestring.
+        '''
         coords = coords.split(",")
         coords = [(float(coords[i]), float(coords[i+1])) for i in range(0,len(coords),2)]
         return LineString(coords)
 
     def _download_highways(self, url):
+        '''
+        Downloads the highways from the specified url.
+        Params:
+            - url: A string containing the url the highways should be downloaded from.
+        Returns a dictionary mapping the ids to the obtained highways.
+        '''
         print("Downloading highways...")
         with urllib.request.urlopen(url) as response:
             lines = [l.decode('utf-8') for l in response.readlines()]
@@ -128,6 +191,12 @@ class iGraph:
         return highways
 
     def _download_congestions(self, url):
+        '''
+        Downloads the congestions from the specified url.
+        Params:
+            - url: A string containing the url the congestions should be downloaded from.
+        Returns a dictionary mapping the ids to the obtained congestions.
+        '''
         print("Downloading congestions...")
         with urllib.request.urlopen(url) as response:
             lines = [l.decode('utf-8') for l in response.readlines()]
@@ -142,7 +211,12 @@ class iGraph:
         return congestions
 
     def _get_speed(self, speeds):
-        ''' Parsing for max_speed, sometimes int and sometimes list(string)'''
+        '''
+        Parses the given speeds to a single number.
+        Params:
+            - speeds: It can either be a list of numbers represented as strings or a single number reprented as a string.
+        Returns the average of the given numbers.
+        '''
         if isinstance(speeds,list):
             return sum(list(map(int, speeds))) / len(speeds)
         else:
@@ -158,6 +232,10 @@ class iGraph:
     # Functions for building the iGraph
 
     def _update_igraph(self):
+        '''
+        Every 5 minutes updates the igraph to match the available data about congestions.
+        This function does not finish so it does not return anything.
+        '''
         threading.Timer(300, self._update_igraph).start()
         print("Updating...")
 
@@ -227,6 +305,12 @@ class iGraph:
 
 
     def _get_igraph(self, graph):
+        '''
+        Given a graph with complete congestion data computes the itimes values.
+        Params:
+            - graph: The graph of the streets with complete congestions values.
+        Returns the resulting igraph.
+        '''
         for node1 in graph.nodes:
             for node2 in graph.neighbors(node1):
                 if ('maxspeed' in graph[node1][node2]):
@@ -248,6 +332,14 @@ class iGraph:
         return graph
 
     def _build_igraph(self, graph, highways, congestions):
+        '''
+        Builds the igraph from the graph of the streets, the highways and the congestion data available.
+        Params:
+            - graph: The graph of the streets.
+            - highways: A dictionary that maps the ids with the highways.
+            - congestions: A dictionary that maps the ids with the congestions.
+        Returns the resulting igraph.
+        '''
         print("Building iGraph...")
 
         #Initialize the congestion to "No data"
