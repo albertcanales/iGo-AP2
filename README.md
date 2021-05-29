@@ -10,17 +10,17 @@
 - ~~Métodos que no requieran un graph~~
 - ~~Comentar código, elecciones de diseño~~
 - Que actualice valores cada 5 min
-- Traducir comentarios
-- Geocoder no funciona bien, siempre devuelve lo mismo a los nombres
+- ~~Traducir comentarios~~
+- ~~Geocoder no funciona bien, siempre devuelve lo mismo a los nombres~~
 
 ## bot.py
 - Posar bonica output (treure interacció?)
 - ~~Mètode go (requereix coses abans)~~
-- Fer StaticMap a pos
+- ~~Fer StaticMap a pos~~
 - ~~Fer que les locations vagin amb l'usuari, no que sigui global~~
 - ~~Treure boto request (reiniciar conversa?)~~
 - Canviar nom/foto bot
-- Treure globals a igraph?
+- ~~Treure globals a igraph?~~
 
 ## General
 - Documentar codi

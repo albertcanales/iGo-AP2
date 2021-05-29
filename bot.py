@@ -1,6 +1,6 @@
 from telegram import ParseMode, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from staticmap import StaticMap, CircleMarker
+from staticmap import StaticMap, CircleMarker, Line
 from igo import *
 
 igraph = None # The iGraph used by the bot
@@ -35,13 +35,13 @@ My creators are:
 
 
 def go(update, context):
-    global igraph
     text = update.message.text.split(None, 1)[1] # Removes the first word
     target = igraph.get_location(text)
     if target is not None:
         if get_user(update) in locations.keys():
             path = igraph.get_shortest_path(locations[get_user(update)], target)
-            print(path)
+            print("Path from %s to %s" %(str(path[0]), str(path[-1])))
+            send_map(update, context, path)
             # Aquí se debería mostrar la imagen
         else:
             send_message(update, context, "I don't have your location 😔. Send it so I can guide you!")
@@ -49,7 +49,6 @@ def go(update, context):
         send_message(update, context, "Your location is *not valid*, give me the coordinates or a name")
 
 def where(update, context):
-    global locations
     if get_user(update) in locations.keys():
         print("Location to show:", locations[get_user(update)])
         send_map(update, context, locations[get_user(update)])
@@ -61,7 +60,6 @@ def where(update, context):
 
 def pos(update, context):
     '''Secret command /pos. Updates the global location with the given one'''
-    global igraph
     message = "How do you know about this, are you a hacker? Please don't hurt me!\n"
     text = update.message.text.split(None, 1)[1] # Removes the first word
     loc = igraph.get_location(text)
@@ -87,16 +85,19 @@ def send_message(update, context, message):
     '''Auxiliary function to simplify calls'''
     context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
 
-def send_map(update, context, location):
+def send_map(update, context, path):
+    ''' Sends a map given a Location or a path (list of Locations)'''
     try:
         fitxer = "%s.png" % get_user(update)
-        mapa = StaticMap(500, 500)
-        mapa.add_marker(CircleMarker(locations[get_user(update)], 'blue', 10))
-        print("pre")
+        mapa = StaticMap(1000, 1000)
+        if isinstance(path, Location):
+            mapa.add_marker(CircleMarker(locations[get_user(update)], 'red', 10))
+        else:
+            mapa.add_marker(CircleMarker(path[0], 'blue', 10))
+            mapa.add_line(Line(path, 'blue', 3, False))
+            mapa.add_marker(CircleMarker(path[-1], 'red', 10))
         imatge = mapa.render()
-        print("mid")
         imatge.save(fitxer)
-        print("pos")
         context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=open(fitxer, 'rb'))
@@ -115,17 +116,6 @@ def main():
 
     global igraph
     igraph = iGraph() 
-
-    fitxer = "%s.png" % "prova"
-    mapa = StaticMap(500, 500)
-    mapa.add_marker(CircleMarker(igraph.get_location("Camp Nou"), 'blue', 10))
-    print("pre")
-    imatge = mapa.render()
-    print("mid")
-    imatge.save(fitxer)
-    print("pos")
-    #os.remove(fitxer)
-
 
     print("Starting bot...")
 

@@ -46,12 +46,10 @@ class iGraph:
         target = ox.get_nearest_nodes(self.igraph, [target_loc.lat], [target_loc.lon])[0]
         if nx.has_path(self.igraph, source=source, target=target):
             node_path = nx.shortest_path(self.igraph, source=source, target=target, weight='itime')
-            print(node_path)
             return self._get_path_coords(node_path)
         return None
 
     def get_location(self, string):
-        print(string)
         if string is not None:
             parts = string.split(" ")
             try:
@@ -148,11 +146,11 @@ class iGraph:
             return int(speeds)
 
     def _get_path_coords(self, path):
-        path = []
+        coords_path = []
         for node in path:
             node_info = self.igraph.nodes[node]
-            path.append([node_info['y'], node_info['x']])
-        return path
+            coords_path.append(Location(node_info['x'], node_info['y']))
+        return coords_path
 
     # Functions for building the iGraph
 
