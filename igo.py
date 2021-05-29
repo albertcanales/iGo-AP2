@@ -86,6 +86,71 @@ class iGraph:
         ec = [color_mapper[d['congestion']] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
         ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
 
+    def update_congestions(self, graph, highways, oldCongestions):
+        congestions = _download_congestions(self, CONGESTIONS_URL)
+
+        anyUpdate = False
+        for key in congestions.keys():
+            #If nothing has changed there is nothing to update
+            if congestions[key].actual != oldCongestions[key].actual:
+                #coords is the list of coordinates of the corresponding highway
+                coords = list(highways[key].coords.coords)
+                coordsY = [coords[i][1] for i in range(len(coords))]
+                coordsX = [coords[i][0] for i in range(len(coords))]
+
+                #Nodes is the list of nodes of the corresponding highway
+                nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+                for i in range(1,len(nodes)):
+                    #For each segment of the highway assign the congestion to the shortest path between the nodes that it connects.
+                    if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
+                        #Path is the aforementioned shortest path.
+                        path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
+                        for i in range(1, len(path)):
+                            graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
+                            graph[path[i-1]][path[i]]['congestionInfo'] = (congestions[key].actual > 0)
+                            anyUpdate = True
+
+        #If there has been an update the estimation needs to be recomputed
+        if anyUpdate:
+            #Reset the previous estimations to "No data"
+            for node1, info1 in graph.nodes.items():
+                for u, v, data in graph.in_edges(node1, data = True):
+                    if not data['congestionInfo']:
+                        graph[u][v]['congestion'] = 0
+
+            #Recompute estimation
+            for iteration in range(6):
+                for node1, info1 in graph.nodes.items():
+                    congestionSum = 0
+                    congestionCount = 0
+                    for u, v, data in graph.in_edges(node1, data = True):
+                        if data['congestion'] > 0:
+                            congestionSum += data['congestion']
+                            congestionCount += 1
+                    for u, v, data in graph.out_edges(node1, data = True):
+                        if data['congestion'] > 0:
+                            congestionSum += data['congestion']
+                            congestionCount += 1
+                    if congestionCount > 0:
+                        averageCongestion = congestionSum//congestionCount
+                        for u, v, data in graph.in_edges(node1, data = True):
+                            if data['congestion'] == 0:
+                                graph[u][v]['congestion'] = max(1, averageCongestion-1)
+                        for u, v, data in graph.out_edges(node1, data = True):
+                            if data['congestion'] == 0:
+                                graph[u][v]['congestion'] = max(1, averageCongestion)
+
+            for node1, info1 in graph.nodes.items():
+                for u, v, data in graph.in_edges(node1, data = True):
+                    if data['congestion'] == 0:
+                        graph[u][v]['congestion'] = 1
+
+            #Recompute iTimes
+            igraph = self._get_igraph(graph)
+
+        return graph
+
+
     # Functions for input / output
 
     def _exists_graph(self, filename):
@@ -180,6 +245,7 @@ class iGraph:
 
         #Initialize the congestion to "No data"
         nx.set_edge_attributes(graph, 0, 'congestion')
+        nx.set_edge_attributes(graph, False, 'congestionInfo')
 
         #Assign the congestion data we do have
         for key in congestions.keys():
@@ -199,12 +265,13 @@ class iGraph:
                         path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
                         for i in range(1, len(path)):
                             graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
+                            graph[path[i-1]][path[i]]['congestionInfo'] = True
         print("Filling congestions...")
 
         # Complete the remaining congestions
         # For each iteration for each node extend the average congestion of the adjacent
         # streets with known congestion to the adjacent streets with unknown congestion.
-        for iteration in range(10):
+        for iteration in range(6):
             for node1, info1 in graph.nodes.items():
                 congestionSum = 0
                 congestionCount = 0
