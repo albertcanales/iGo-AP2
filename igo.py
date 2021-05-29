@@ -27,29 +27,24 @@ class iGraph:
         graph = self.get_graph()
         #plot_graph(graph)
 
-        # download highways and plot them into a PNG image
-        self.highways = self._download_highways(HIGHWAYS_URL)
+        # download highways and parse them accordingly
+        self._highways = self._download_highways(HIGHWAYS_URL)
         #plot_highways(highways, 'highways.png', SIZE)
 
-        # download congestions and plot them into a PNG image
-        self.congestions = self._download_congestions(CONGESTIONS_URL)
-        #plot_congestions(highways, congestions, 'congestions.png', SIZE)
+        # download congestions and parse them accordingly
+        self._congestions = self._download_congestions(CONGESTIONS_URL)
 
         # get the 'intelligent graph' version of a graph taking into account the congestions of the highways
-        self.igraph = self._build_igraph(graph, self.highways, self.congestions)
+        self._igraph = self._build_igraph(graph, self._highways, self._congestions)
 
-        # get 'intelligent path' between two addresses and plot it into a PNG image
-        # ipath = get_shortest_path_with_ispeeds(igraph, "Campus Nord", "Sagrada Família")
-        # plot_path(igraph, ipath, SIZE)
-
-        #update igraph every 5 minutes
+        # update igraph every 5 minutes
         self._update_igraph()
 
     def get_shortest_path(self, source_loc, target_loc):
-        source = ox.get_nearest_nodes(self.igraph, [source_loc.lat], [source_loc.lon])[0]
-        target = ox.get_nearest_nodes(self.igraph, [target_loc.lat], [target_loc.lon])[0]
-        if nx.has_path(self.igraph, source=source, target=target):
-            node_path = nx.shortest_path(self.igraph, source=source, target=target, weight='itime')
+        source = ox.get_nearest_nodes(self._igraph, [source_loc.lat], [source_loc.lon])[0]
+        target = ox.get_nearest_nodes(self._igraph, [target_loc.lat], [target_loc.lon])[0]
+        if nx.has_path(self._igraph, source=source, target=target):
+            node_path = nx.shortest_path(self._igraph, source=source, target=target, weight='itime')
             return self._get_path_coords(node_path)
         return None
 
@@ -59,12 +54,12 @@ class iGraph:
             try:
                 x = float(parts[0])
                 y = float(parts[1])
-                node = ox.get_nearest_nodes(self.igraph, [x], [y])[0]
-                return Location(self.igraph.nodes[node]['x'], self.igraph.nodes[node]['y'])
+                node = ox.get_nearest_nodes(self._igraph, [x], [y])[0]
+                return Location(self._igraph.nodes[node]['x'], self._igraph.nodes[node]['y'])
             except:
                 location = ox.geocode(string)
-                node = ox.get_nearest_nodes(self.igraph, [location[1]], [location[0]])[0]
-                node_info = self.igraph.nodes[node]
+                node = ox.get_nearest_nodes(self._igraph, [location[1]], [location[0]])[0]
+                node_info = self._igraph.nodes[node]
                 return Location(node_info['x'], node_info['y'])
 
     def get_graph(self):
@@ -78,18 +73,21 @@ class iGraph:
             print("Graph loaded")
         return graph
 
-    def plot_graph(self, graph, save=True):
+    def plot_graph(self, graph, attr=None, save=True):
         multiGraph = nx.MultiDiGraph(graph)
 
-        edges = ox.graph_to_gdfs(multiGraph, nodes=False)
-        edge_types = edges['congestion'].value_counts()
-        color_list = ox.plot.get_colors(n=len(edge_types), cmap='plasma_r')
-        color_mapper = pd.Series(color_list, index=edge_types.index).to_dict()
+        if attr is None:
+            ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
+        else:
+            edges = ox.graph_to_gdfs(multiGraph, nodes=False)
+            # assigns a different color for each value of atribute attr
+            edge_types = edges[attr].value_counts()
+            color_list = ox.plot.get_colors(n=len(edge_types), cmap='plasma_r')
+            color_mapper = pd.Series(color_list, index=edge_types.index).to_dict()
 
-        # get the color for each edge based on its highway type
-        ec = [color_mapper[d['congestion']] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
-        ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
-
+            # get the color for each edge based on its attr
+            ec = [color_mapper[d[attr]] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
+            ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
     
     # Functions for input / output
 
@@ -153,7 +151,7 @@ class iGraph:
     def _get_path_coords(self, path):
         coords_path = []
         for node in path:
-            node_info = self.igraph.nodes[node]
+            node_info = self._igraph.nodes[node]
             coords_path.append(Location(node_info['x'], node_info['y']))
         return coords_path
 
@@ -163,10 +161,10 @@ class iGraph:
         threading.Timer(300, self._update_igraph).start()
         print("Updating...")
 
-        oldCongestions = self.congestions
-        highways = self.highways
+        oldCongestions = self._congestions
+        highways = self._highways
         congestions = self._download_congestions(CONGESTIONS_URL)
-        graph = self.igraph
+        graph = self._igraph
 
         anyUpdate = False
         for key in congestions.keys():
@@ -225,7 +223,7 @@ class iGraph:
                         graph[u][v]['congestion'] = 1
 
             #Recompute iTimes
-            self.igraph = self._get_igraph(graph)
+            self._igraph = self._get_igraph(graph)
 
 
     def _get_igraph(self, graph):

@@ -8,7 +8,7 @@ locations = {} # Contains the location for each user
 
 def start(update, context):
     '''Command /start. General description of the bot'''
-    message = "I am *iGo* 🤖️ and I can take you wherever you want from Barcelona! Type /help to see what I can do for you"
+    message = "I am *iGo*. I can guide you through Barcelona, my _amigo_ 🚗!\n Type /help to see what I can do for you"
     send_message(update, context, message)
 
 def help(update, context):
@@ -27,7 +27,7 @@ Hi! Here's what I am capable of:
 def author(update, context):
     '''Command /author. Displays the authors of the project'''
     message = '''
-My creators are:
+My almighty creators are:
 - Javier Nistal Salas
 - Albert Canales Ros
 '''
@@ -40,37 +40,41 @@ def go(update, context):
     if target is not None:
         if get_user(update) in locations.keys():
             path = igraph.get_shortest_path(locations[get_user(update)], target)
-            print("Path from %s to %s" %(str(path[0]), str(path[-1])))
-            send_map(update, context, path)
-            # Aquí se debería mostrar la imagen
+            if path is not None:
+                print("Path from %s to %s" %(str(path[0]), str(path[-1])))
+                send_map(update, context, path)
+            else:
+                send_message(update, context, "⛔ There is no possible path between the two locations! ⛔")
         else:
-            send_message(update, context, "I don't have your location 😔. Send it so I can guide you!")
+            send_message(update, context, "🚫 I don't have your location 📍. Send it so I can guide you!")
     else:
-        send_message(update, context, "Your location is *not valid*, give me the coordinates or a name")
+        send_location_error(update, context)
 
 def where(update, context):
     if get_user(update) in locations.keys():
         print("Location to show:", locations[get_user(update)])
         send_map(update, context, locations[get_user(update)])
-        send_message(update, context, "Send me your actual location if you want to change it")
+        send_message(update, context, "ℹ️ Send me your actual location 📍 if you want to change it")
     else:
         print("No location to show")
-        send_message(update, context, "I don't have your location 😔. Send it to me!")
+        send_message(update, context, "🚫 I don't have your location 📍. Send it to me!")
     
 
 def pos(update, context):
     '''Secret command /pos. Updates the global location with the given one'''
-    message = "How do you know about this, are you a hacker? Please don't hurt me!\n"
-    text = update.message.text.split(None, 1)[1] # Removes the first word
-    loc = igraph.get_location(text)
-    if loc is not None:
-        global locations
-        locations[get_user(update)] = loc
-        message += "Got it! Your location has been *updated*"
-        print("Manual location:", loc)
+    send_message(update, context, "How do you know about this, are you a hacker? Please don't hurt me 😨!")
+    splitted_com = update.message.text.split(None, 1) # Separates between the first word
+    if len(splitted_com) > 1:
+        loc = igraph.get_location(text)
+        if loc is not None:
+            global locations
+            locations[get_user(update)] = loc
+            send_message(update, context, "🔄 Got it! Your location has been *updated*")
+            print("Manual location:", loc)
+        else:
+            send_location_error(update, context)
     else:
-        message += "Your location is *not valid*, give me the coordinates or a name"
-    send_message(update, context, message)
+        send_location_error(update, context)
 
 
 
@@ -78,12 +82,15 @@ def set_location(update, context):
     '''Given a location message, it updates it to locations'''
     global locations
     locations[get_user(update)] = Location(update.message.location.latitude, update.message.location.longitude)
-    send_message(update, context, "I've updated your location! If only I had legs to move as well...")
+    send_message(update, context, "🔄 I've *updated* your location!\nIf only I had legs to move as well...")
     print("Given location:", locations[get_user(update)])
 
 def send_message(update, context, message):
     '''Auxiliary function to simplify calls'''
     context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
+
+def send_location_error(update, context):
+    send_message(update, context, "🚫 Your location is *not valid*, give me the coordinates or a name")
 
 def send_map(update, context, path):
     ''' Sends a map given a Location or a path (list of Locations)'''
