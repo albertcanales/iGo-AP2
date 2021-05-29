@@ -42,8 +42,8 @@ class iGraph:
         # plot_path(igraph, ipath, SIZE)
 
     def get_shortest_path(self, source_loc, target_loc):
-        source = ox.nearest_nodes(self.igraph, source_loc.lat, source_loc.lon)
-        target = ox.nearest_nodes(self.igraph, target_loc.lat, target_loc.lon)
+        source = ox.get_nearest_nodes(self.igraph, [source_loc.lat], [source_loc.lon])[0]
+        target = ox.get_nearest_nodes(self.igraph, [target_loc.lat], [target_loc.lon])[0]
         if nx.has_path(self.igraph, source=source, target=target):
             node_path = nx.shortest_path(self.igraph, source=source, target=target, weight='itime')
             print(node_path)
@@ -57,13 +57,13 @@ class iGraph:
             try:
                 x = float(parts[0])
                 y = float(parts[1])
-                node = ox.nearest_nodes(self.igraph, [x], [y])[0]
-                return Location(self.igraph.nodes[node]['y'], self.igraph.nodes[node]['x'])
+                node = ox.get_nearest_nodes(self.igraph, [x], [y])[0]
+                return Location(self.igraph.nodes[node]['x'], self.igraph.nodes[node]['y'])
             except:
                 location = ox.geocode(string)
-                node = ox.nearest_nodes(self.igraph, location[0], location[1])
+                node = ox.get_nearest_nodes(self.igraph, [location[1]], [location[0]])[0]
                 node_info = self.igraph.nodes[node]
-                return Location(node_info['y'], node_info['x'])
+                return Location(node_info['x'], node_info['y'])
 
     def get_graph(self):
         # load/download graph (using cache) and plot it on the screen
@@ -142,10 +142,10 @@ class iGraph:
 
     def _get_speed(self, speeds):
         ''' Parsing for max_speed, sometimes int and sometimes list(string)'''
-        if isinstance(speeds,int):
-            return speeds
-        else:
+        if isinstance(speeds,list):
             return sum(list(map(int, speeds))) / len(speeds)
+        else:
+            return int(speeds)
 
     def _get_path_coords(self, path):
         path = []
@@ -160,52 +160,52 @@ class iGraph:
         for node1 in graph.nodes:
             for node2 in graph.neighbors(node1):
                 if ('maxspeed' in graph[node1][node2]):
-                    #Si hay datos de la velocidad máxima asginamos el tiempo que se tardaría en recorrer la calle.
+                    #If there is data about the max speed we can assign the time it would take to get to the end of the street.
                     graph[node1][node2]['itime'] = graph[node1][node2]['length'] / self._get_speed(graph[node1][node2]['maxspeed'])
                 else:
-                    #Si no hay datos de la velocidad máxima 30 km/h es una buena estimación.
+                    #If there is no data about the max speed then 30 km/h is a decent guess.
                     graph[node1][node2]['itime'] = graph[node1][node2]['length'] / 30
 
                 if graph[node1][node2]['congestion'] == 6:
-                    #Si la calle está cortada no podemos pasar por aquí.
+                    #If the street is blocked we can't use it.
                     graph[node1][node2]['itime'] = float('inf')
                 else:
-                    #Adaptamos el tiempo en función de la congestión que haya.
+                    #We need to increase the travel time if there is congestion.
                     graph[node1][node2]['itime'] /= 1-(graph[node1][node2]['congestion']-1)/6
 
-                #Se tarda unos segundos extra al cambiar de calle (Normalmente hay que girar, pasar por una intersección o esperar un semáforo).
+                #It takes some extra seconds to change streets (One must usually turn, cross an intersection or wait for the traffic light).
                 graph[node1][node2]['itime'] += 5
         return graph
 
     def _build_igraph(self, graph, highways, congestions):
         print("Building iGraph...")
 
-        #Inicializamos la congestión de todas las calles a "sin datos"
+        #Initialize the congestion to "No data"
         nx.set_edge_attributes(graph, 0, 'congestion')
 
-        #Asignamos los datos de las congestiones que tenemos
+        #Assign the congestion data we do have
         for key in congestions.keys():
-            #Si los datos de la congestion son "No hay datos" no sirve de nada ubicar la highway correspondiente
+            #If our data about the congestion is just "No data" it's useless.
             if congestions[key].actual > 0:
-                #coords es la lista de coordenadas de la highway correspondiente
+                #coords is the list of coordinates of the corresponding highway
                 coords = list(highways[key].coords.coords)
                 coordsY = [coords[i][1] for i in range(len(coords))]
                 coordsX = [coords[i][0] for i in range(len(coords))]
 
-                #Nodes es la lista de nodos de la highway correspondiente
-                nodes = ox.nearest_nodes(graph, coordsX, coordsY)
+                #Nodes is the list of nodes of the corresponding highway
+                nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
                 for i in range(1,len(nodes)):
-                    #En cada tramo de la highway asignamos la congestion al camino mas corto entre los nodos que une
+                    #For each segment of the highway assign the congestion to the shortest path between the nodes that it connects.
                     if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
-                        #Path es el camino mas corto
+                        #Path is the aforementioned shortest path.
                         path = nx.shortest_path(graph, source = nodes[i-1], target = nodes[i], weight = 'length')
                         for i in range(1, len(path)):
                             graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
         print("Filling congestions...")
 
-        # Completar congestion del resto
-        # Durante 10 iteraciones extenderemos desde cada nodo la congestión media de las calles adyacentes
-        # de congestión conocida a las calles adyacentes de congestión desconocida.
+        # Complete the remaining congestions
+        # For each iteration for each node extend the average congestion of the adjacent
+        # streets with known congestion to the adjacent streets with unknown congestion.
         for iteration in range(10):
             for node1, info1 in graph.nodes.items():
                 congestionSum = 0
@@ -227,8 +227,7 @@ class iGraph:
                         if data['congestion'] == 0:
                             graph[u][v]['congestion'] = max(1, averageCongestion)
 
-        # Las calles cuya congestión no se haya asignado aún serán calles muy aisladas, podemos asumir entonces
-        # que no estarán muy transitadas y el tráfico será fluido.
+        # The remaining streets are very isolated so we can assume there won't be many people using them.
         for node1, info1 in graph.nodes.items():
             for u, v, data in graph.in_edges(node1, data = True):
                 if data['congestion'] == 0:
@@ -236,9 +235,10 @@ class iGraph:
 
         print("Declaring iTimes...")
 
-        # Por último calculamos el itime de cada calle.
+        # Compute the itime of every street
         igraph = self._get_igraph(graph)
         
         print("Done")
+
 
         return igraph
