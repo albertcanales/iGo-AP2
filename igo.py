@@ -54,8 +54,8 @@ class iGraph:
         target = ox.get_nearest_nodes(self._igraph, [target_loc.lon], [target_loc.lat])[0]
         if nx.has_path(self._igraph, source=source, target=target):
             node_path = nx.shortest_path(self._igraph, source=source, target=target, weight='itime')
-            coords_path = _get_path_coords(node_path)
-            self.generate_map(coords_path, filename)
+            coords_path = self._get_path_coords(node_path)
+            self._generate_map(coords_path, filename)
             return coords_path
         return None
 
@@ -89,10 +89,6 @@ class iGraph:
         '''
         multiGraph = nx.MultiDiGraph(graph)
         ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
-
-    def delete_maps(self):
-        # TODO
-        pass
 
     # Functions for input / output
 
@@ -259,7 +255,13 @@ class iGraph:
         return congestions
 
     def _generate_map(self, path, filename):
-        file = "%s.png" % filename
+        '''
+        Generates a image of the path given a filename.
+        Params:
+            - path: A list of node ids representing a path.
+            - filename: A string with the file name
+        This function does not return anything.
+        '''
         st_map = StaticMap(1000, 1000)
         if isinstance(path, Location):
             st_map.add_marker(CircleMarker(locations[get_user(update)], 'red', 10))
@@ -268,7 +270,8 @@ class iGraph:
             st_map.add_line(Line(path, 'blue', 3, False))
             st_map.add_marker(CircleMarker(path[-1], 'red', 10))
         image = st_map.render()
-        image.save(file)
+        image.save(filename)
+        print("Image saved on", filename)
 
     def _get_speed(self, speeds):
         '''
