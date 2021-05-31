@@ -1,7 +1,7 @@
 ![](banner.png)
 
 # iGo-BCN
-## By Javier Nistal Salas i Albert Canales Ros
+## By Javier Nistal Salas and Albert Canales Ros
 
 iGo-BCN is a Telegram bot that guides you through Barcelona. The project is composed by two files: `igo.py` and `bot.py`, described on the next sections.
 

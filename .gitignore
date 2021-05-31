@@ -1,4 +1,4 @@
-*.png
+.png
 *.graph
 *.highways
 *.json
