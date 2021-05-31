@@ -65,6 +65,7 @@ def pos(update, context):
     send_message(update, context, "How do you know about this, are you a hacker? Please don't hurt me 😨!")
     splitted_com = update.message.text.split(None, 1) # Separates between the first word
     if len(splitted_com) > 1:
+        text = splitted_com[1]
         loc = igraph.get_location(text)
         if loc is not None:
             global locations
@@ -81,7 +82,7 @@ def pos(update, context):
 def set_location(update, context):
     '''Given a location message, it updates it to locations'''
     global locations
-    locations[get_user(update)] = Location(update.message.location.latitude, update.message.location.longitude)
+    locations[get_user(update)] = Location(update.message.location.longitude, update.message.location.latitude)
     send_message(update, context, "🔄 I've *updated* your location!\nIf only I had legs to move as well...")
     print("Given location:", locations[get_user(update)])
 

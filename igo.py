@@ -8,6 +8,7 @@ import csv
 import urllib
 from shapely.geometry import LineString
 import threading
+import time
 
 PLACE = 'Barcelona, Catalonia'
 IMAGE_FILENAME = 'barcelona.png'
@@ -29,7 +30,17 @@ class iGraph:
         #plot_graph(graph)
 
         # download highways and parse them accordingly
-        self._highways = self._download_highways(HIGHWAYS_URL)
+        highwayscoords = self._download_highways(HIGHWAYS_URL)
+
+        print("Proyecting highways...")
+        self._highways = {}
+        for key in highwayscoords.keys():
+            coords = list(highwayscoords[key].coords.coords)
+            coordsY = [coords[i][1] for i in range(len(coords))]
+            coordsX = [coords[i][0] for i in range(len(coords))]
+            nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+            self._highways[key] = nodes
+
         #plot_highways(highways, 'highways.png', SIZE)
 
         # download congestions and parse them accordingly
@@ -248,13 +259,8 @@ class iGraph:
         for key in congestions.keys():
             #If nothing has changed there is nothing to update
             if congestions[key].actual != oldCongestions[key].actual:
-                #coords is the list of coordinates of the corresponding highway
-                coords = list(highways[key].coords.coords)
-                coordsY = [coords[i][1] for i in range(len(coords))]
-                coordsX = [coords[i][0] for i in range(len(coords))]
-
                 #Nodes is the list of nodes of the corresponding highway
-                nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+                nodes = self._highways[key]
                 for i in range(1,len(nodes)):
                     #For each segment of the highway assign the congestion to the shortest path between the nodes that it connects.
                     if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
@@ -302,6 +308,7 @@ class iGraph:
 
             #Recompute iTimes
             self._igraph = self._get_igraph(graph)
+            print("Done")
 
 
     def _get_igraph(self, graph):
@@ -350,13 +357,9 @@ class iGraph:
         for key in congestions.keys():
             #If our data about the congestion is just "No data" it's useless.
             if congestions[key].actual > 0:
-                #coords is the list of coordinates of the corresponding highway
-                coords = list(highways[key].coords.coords)
-                coordsY = [coords[i][1] for i in range(len(coords))]
-                coordsX = [coords[i][0] for i in range(len(coords))]
+                #nodes is the list of nodes of the corresponding highway
+                nodes = highways[key]
 
-                #Nodes is the list of nodes of the corresponding highway
-                nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
                 for i in range(1,len(nodes)):
                     #For each segment of the highway assign the congestion to the shortest path between the nodes that it connects.
                     if (nx.has_path(graph, source = nodes[i-1], target = nodes[i])):
@@ -365,6 +368,8 @@ class iGraph:
                         for i in range(1, len(path)):
                             graph[path[i-1]][path[i]]['congestion'] = congestions[key].actual
                             graph[path[i-1]][path[i]]['congestionInfo'] = True
+
+
         print("Filling congestions...")
 
         # Complete the remaining congestions
