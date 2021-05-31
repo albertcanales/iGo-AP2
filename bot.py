@@ -16,8 +16,8 @@ def start(update, context):
         - context: Telegram's context
     This funcion does not return anything.
     '''
-    message = "I am *iGo*. I can guide you through Barcelona, my _amigo_ 🚗!\n\
-     Type /help to see what I can do for you"
+    message = "I am *iGo*. I can guide you through Barcelona, my _amigo_ 🚗!\
+\nType /help to see what I can do for you"
     send_message(update, context, message)
 
 
@@ -34,8 +34,8 @@ Hi! Here's what I am capable of:
 - /start: I will guide you to get to your destination
 - /help: I will show available commands (recursion, yay!)
 - /author: I will show you my creators
-- /go `place`: Tell me a `place` from Barcelona (name or coordinates) and I\
- will show you the optimal path.
+- /go `place`: Tell me a `place` from Barcelona (name or coordinates) and \
+I will show you the optimal path.
 - /where: I will show your actual position
 '''
     send_message(update, context, message)
@@ -66,7 +66,7 @@ def go(update, context):
         - context: Telegram's context
     This funcion does not return anything.
     '''
-    text = get_command_parameters(update)
+    text = get_command_parameters(update, context)
     if text is not None:
         target = igraph.get_location(text)
         if target is not None:
@@ -80,12 +80,12 @@ def go(update, context):
                     os.remove(filename)
                 else:
                     send_message(
-                        update, context, "⛔ There is no possible path between\
-                         the two locations! ⛔")
+                        update, context, "⛔ There is no possible path \
+between the two locations! ⛔")
             else:
                 send_message(
-                    update, context, "🚫 I don't have your location 📍. Send\
-                     it so I can guide you!")
+                    update, context, "🚫 I don't have your location 📍. \
+Send it so I can guide you!")
         else:
             send_location_error(update, context)
 
@@ -100,10 +100,12 @@ def where(update, context):
     '''
     if get_chat_id(update) in locations.keys():
         print("Location to show:", locations[get_chat_id(update)])
-        send_map(update, context, locations[get_chat_id(update)])
+        filename = "%s.png" % get_chat_id(update)
+        igraph.get_location_map(locations[get_chat_id(update)], filename)
+        send_map(update, context, filename)
         send_message(
-            update, context, "ℹ️ Send me your actual location 📍 if you want\
-             to change it")
+            update, context, "ℹ️ Send me your actual location 📍 if you \
+want to change it")
     else:
         print("No location to show")
         send_message(update, context,
@@ -119,9 +121,9 @@ def pos(update, context):
     This funcion does not return anything.
     '''
     send_message(update, context,
-                 "How do you know about this, are you a hacker? Please don't\
-                  hurt me 😨!")
-    text = get_command_parameters(update)
+                 "How do you know about this, are you a hacker? Please \
+don't hurt me 😨!")
+    text = get_command_parameters(update, context)
     if text is not None:
         loc = igraph.get_location(text)
         if loc is not None:
@@ -148,8 +150,8 @@ def set_location(update, context):
     locations[get_chat_id(update)] = Location(
         update.message.location.longitude, update.message.location.latitude)
     send_message(update, context,
-                 "🔄 I've *updated* your location!\nIf only I had legs to move\
-                  as well...")
+                 "🔄 I've *updated* your location!\nIf only I had legs to \
+move as well...")
     print("Given location:", locations[get_chat_id(update)])
 
 
@@ -177,8 +179,8 @@ def send_location_error(update, context):
     This funcion does not return anything.
     '''
     send_message(update, context,
-                 "🚫 Your location is *not valid*, give me the coordinates or\
-                  a name")
+                 "🚫 Your location is *not valid*, give me the coordinates \
+or a name")
 
 
 def send_map(update, context, filename):
@@ -211,7 +213,7 @@ def get_chat_id(update):
     return update.message.chat.id
 
 
-def get_command_parameters(update):
+def get_command_parameters(update, context):
     '''
     Separates the command from the parameters if possible.
     Params:

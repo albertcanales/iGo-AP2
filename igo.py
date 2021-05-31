@@ -70,7 +70,7 @@ class iGraph:
 
     def get_location(self, string):
         '''
-        Gets the locationo of the node associated with the given string.
+        Gets the location of the node associated with the given string.
         Params:
             - string: A string that can either be the name of a location or
             two space separated decimal numbers representing the coordinates.
@@ -90,6 +90,9 @@ class iGraph:
                     self._igraph, [location[1]], [location[0]])[0]
                 node_info = self._igraph.nodes[node]
                 return Location(node_info['x'], node_info['y'])
+
+    def get_location_map(self, location, filename):
+        self._generate_map(location, filename)
 
     def plot_graph(self, save=True):
         '''
@@ -274,7 +277,7 @@ class iGraph:
         for line in reader:
             line = list(map(int, line))
             way_id, date, actual, predicted = line
-            if way_id not in congestions.keys() or
+            if way_id not in congestions.keys() or \
             congestions[way_id].date < date:
                 congestions[way_id] = Congestion(date, actual, predicted)
         return congestions
@@ -290,7 +293,7 @@ class iGraph:
         st_map = StaticMap(1000, 1000)
         if isinstance(path, Location):
             st_map.add_marker(CircleMarker(
-                locations[get_user(update)], 'red', 10))
+                path, 'red', 10))
         else:
             st_map.add_marker(CircleMarker(path[0], 'blue', 10))
             st_map.add_line(Line(path, 'blue', 3, False))
@@ -350,9 +353,9 @@ class iGraph:
                             graph, source=nodes[i-1], target=nodes[i],
                             weight='length')
                         for i in range(1, len(path)):
-                            graph[path[i-1]][path[i]]['congestion'] =
+                            graph[path[i-1]][path[i]]['congestion'] = \
                             congestions[key].actual
-                            graph[path[i-1]][path[i]]['congestionInfo'] =
+                            graph[path[i-1]][path[i]]['congestionInfo'] = \
                             (congestions[key].actual > 0)
                             anyUpdate = True
 
@@ -385,13 +388,13 @@ class iGraph:
                 if ('maxspeed' in graph[node1][node2]):
                     # If there is data about the max speed we can assign the
                     # time it would take to get to the end of the street.
-                    graph[node1][node2]['itime'] =
-                    graph[node1][node2]['length'] /
+                    graph[node1][node2]['itime'] = \
+                    graph[node1][node2]['length'] / \
                     self._get_speed(graph[node1][node2]['maxspeed'])
                 else:
                     # If there is no data about the max speed then 30 km/h is a
                     # decent guess.
-                    graph[node1][node2]['itime'] =
+                    graph[node1][node2]['itime'] = \
                     graph[node1][node2]['length'] / 30
 
                 if graph[node1][node2]['congestion'] == 6:
@@ -486,7 +489,7 @@ class iGraph:
                             graph, source=nodes[i-1], target=nodes[i],
                             weight='length')
                         for i in range(1, len(path)):
-                            graph[path[i-1]][path[i]]['congestion'] =
+                            graph[path[i-1]][path[i]]['congestion'] = \
                             congestions[key].actual
                             graph[path[i-1]][path[i]]['congestionInfo'] = True
 
