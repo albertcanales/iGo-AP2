@@ -3,5 +3,5 @@
 *.highways
 *.json
 cache/
-*.txt
+token.txt
 __pycache__/*
