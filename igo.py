@@ -92,6 +92,13 @@ class iGraph:
                 return Location(node_info['x'], node_info['y'])
 
     def get_location_map(self, location, filename):
+        '''
+        Generates an image of the map of location with name filename
+        Params:
+            - location: The Location to draw.
+            - filename: A string with the file name.
+        This function does not return anything.
+        '''
         self._generate_map(location, filename)
 
     def plot_graph(self, save=True):
