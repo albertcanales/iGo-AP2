@@ -6,6 +6,8 @@ igraph = None  # The iGraph used by the bot
 locations = {}  # Contains the location for each user
 
 
+# Commands
+
 def start(update, context):
     '''
     Command /start. General description of the bot.
@@ -131,6 +133,7 @@ def pos(update, context):
         else:
             send_location_error(update, context)
 
+# Auxiliary methods
 
 def set_location(update, context):
     '''

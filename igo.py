@@ -14,7 +14,6 @@ PLACE = 'Barcelona, Catalonia'
 IMAGE_FILENAME = 'barcelona.png'
 GRAPH_FILENAME = 'barcelona.graph'
 HIGHWAYS_FILENAME = 'barcelona.highways'
-SIZE = 800
 HIGHWAYS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/1090983\
 a-1c40-4609-8620-14ad49aae3ab/resource/1d6c814c-70ef-4147-aa16-a49ddb952f72/do\
 wnload/transit_relacio_trams.csv'
@@ -24,8 +23,6 @@ c2b1-4c21-4962-9acd-6db4c5ff1148/resource/2d456eb5-4ea6-4f68-9794-2f3f1a58a933\
 
 Highway = collections.namedtuple('Highway', 'description coords')
 Congestion = collections.namedtuple('Congestion', 'date actual predicted')
-Highwestion = collections.namedtuple(
-    'Highwestion', 'description coords actualCongestion predictedCongestion')
 Location = collections.namedtuple('Location', 'lon lat')
 
 
@@ -94,18 +91,16 @@ class iGraph:
                 node_info = self._igraph.nodes[node]
                 return Location(node_info['x'], node_info['y'])
 
-    def plot_graph(self, graph, attr=None, save=True):
+    def plot_graph(self, save=True):
         '''
-        Plots the given graph.
+        Plots igraph.
         Params:
-            - graph: The graph to plot.
             - save = True: A boolean that determines whether the resulting
             image should be saved.
         This function does not return anything.
         '''
-        multiGraph = nx.MultiDiGraph(graph)
-        ox.plot_graph(multiGraph, node_size=0,
-                      save=save, filepath=IMAGE_FILENAME)
+        multiGraph = nx.MultiDiGraph(self._igraph)
+        ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
 
     # Functions for input / output
 
