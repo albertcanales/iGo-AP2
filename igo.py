@@ -7,8 +7,8 @@ import pickle
 import csv
 import urllib
 from shapely.geometry import LineString
+from staticmap import StaticMap, CircleMarker, Line
 import threading
-import time
 
 PLACE = 'Barcelona, Catalonia'
 IMAGE_FILENAME = 'barcelona.png'
@@ -41,19 +41,22 @@ class iGraph:
         # update igraph every 5 minutes
         self._update_igraph()
 
-    def get_shortest_path(self, source_loc, target_loc):
+    def get_shortest_path(self, source_loc, target_loc, filename):
         '''
         Computes the shortest path between the two specified locations
         Params:
-            - source_loc: A location with the source of the path
-            - target_loc: A location with the target of the path
+            - source_loc: A location with the source of the path.
+            - target_loc: A location with the target of the path.
+            - filename: The name of the image to be generated.
         Returns a list of locations along the resulting path, if there is no path None is returned.
         '''
         source = ox.get_nearest_nodes(self._igraph, [source_loc.lon], [source_loc.lat])[0]
         target = ox.get_nearest_nodes(self._igraph, [target_loc.lon], [target_loc.lat])[0]
         if nx.has_path(self._igraph, source=source, target=target):
             node_path = nx.shortest_path(self._igraph, source=source, target=target, weight='itime')
-            return self._get_path_coords(node_path)
+            coords_path = _get_path_coords(node_path)
+            self.generate_map(coords_path, filename)
+            return coords_path
         return None
 
     def get_location(self, string):
@@ -86,6 +89,10 @@ class iGraph:
         '''
         multiGraph = nx.MultiDiGraph(graph)
         ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
+
+    def delete_maps(self):
+        # TODO
+        pass
 
     # Functions for input / output
 
@@ -250,6 +257,18 @@ class iGraph:
             if way_id not in congestions.keys() or congestions[way_id].date < date:
                 congestions[way_id] = Congestion(date, actual, predicted)
         return congestions
+
+    def _generate_map(self, path, filename):
+        file = "%s.png" % filename
+        st_map = StaticMap(1000, 1000)
+        if isinstance(path, Location):
+            st_map.add_marker(CircleMarker(locations[get_user(update)], 'red', 10))
+        else:
+            st_map.add_marker(CircleMarker(path[0], 'blue', 10))
+            st_map.add_line(Line(path, 'blue', 3, False))
+            st_map.add_marker(CircleMarker(path[-1], 'red', 10))
+        image = st_map.render()
+        image.save(file)
 
     def _get_speed(self, speeds):
         '''

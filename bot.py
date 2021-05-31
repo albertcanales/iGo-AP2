@@ -1,6 +1,5 @@
 from telegram import ParseMode, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from staticmap import StaticMap, CircleMarker, Line
 from igo import *
 
 igraph = None # The iGraph used by the bot
@@ -64,10 +63,11 @@ def go(update, context):
     target = igraph.get_location(text)
     if target is not None:
         if get_user(update) in locations.keys():
-            path = igraph.get_shortest_path(locations[get_user(update)], target)
+            filename = get_user(update)
+            path = igraph.get_shortest_path(locations[get_user(update)], target, filename)
             if path is not None:
                 print("Path from %s to %s" %(str(path[0]), str(path[-1])))
-                send_map(update, context, path)
+                send_map(update, context, filename)
             else:
                 send_message(update, context, "⛔ There is no possible path between the two locations! ⛔")
         else:
@@ -151,7 +151,7 @@ def send_location_error(update, context):
     '''
     send_message(update, context, "🚫 Your location is *not valid*, give me the coordinates or a name")
 
-def send_map(update, context, path):
+def send_map(update, context, path, filename):
     '''
     Sends a map given a Location or a path (list of Locations).
     Params:
@@ -161,20 +161,10 @@ def send_map(update, context, path):
     This funcion does not return anything.
     '''
     try:
-        fitxer = "%s.png" % get_user(update)
-        mapa = StaticMap(1000, 1000)
-        if isinstance(path, Location):
-            mapa.add_marker(CircleMarker(locations[get_user(update)], 'red', 10))
-        else:
-            mapa.add_marker(CircleMarker(path[0], 'blue', 10))
-            mapa.add_line(Line(path, 'blue', 3, False))
-            mapa.add_marker(CircleMarker(path[-1], 'red', 10))
-        imatge = mapa.render()
-        imatge.save(fitxer)
         context.bot.send_photo(
             chat_id=update.effective_chat.id,
-            photo=open(fitxer, 'rb'))
-        os.remove(fitxer)
+            photo=open(filename, 'rb'))
+        igraph.delete_maps()
     except Exception as e:
             print(e)
             context.bot.send_message(

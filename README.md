@@ -25,7 +25,7 @@
 - ~~Canviar nom/foto bot~~
 - ~~Treure globals a igraph?~~
 - ~~Provar que li arribi més d'una connexió~~
-- Avisar quan estigui actualitzant congestions
+- ~~Avisar quan estigui actualitzant congestions~~
 
 ## General
 - Documentar codi
