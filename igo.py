@@ -86,7 +86,7 @@ class iGraph:
         '''
         multiGraph = nx.MultiDiGraph(graph)
         ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
-    
+
     # Functions for input / output
 
     def _get_graph(self):
@@ -279,7 +279,6 @@ class iGraph:
         '''
         threading.Timer(300, self._update_igraph).start()
         print("Updating...")
-
         oldCongestions = self._congestions
         highways = self._highways
         congestions = self._download_congestions(CONGESTIONS_URL)
@@ -310,34 +309,11 @@ class iGraph:
                         graph[u][v]['congestion'] = 0
 
             #Recompute estimation
-            for iteration in range(6):
-                for node1, info1 in graph.nodes.items():
-                    congestionSum = 0
-                    congestionCount = 0
-                    for u, v, data in graph.in_edges(node1, data = True):
-                        if data['congestion'] > 0:
-                            congestionSum += data['congestion']
-                            congestionCount += 1
-                    for u, v, data in graph.out_edges(node1, data = True):
-                        if data['congestion'] > 0:
-                            congestionSum += data['congestion']
-                            congestionCount += 1
-                    if congestionCount > 0:
-                        averageCongestion = congestionSum//congestionCount
-                        for u, v, data in graph.in_edges(node1, data = True):
-                            if data['congestion'] == 0:
-                                graph[u][v]['congestion'] = max(1, averageCongestion-1)
-                        for u, v, data in graph.out_edges(node1, data = True):
-                            if data['congestion'] == 0:
-                                graph[u][v]['congestion'] = max(1, averageCongestion)
-
-            for node1, info1 in graph.nodes.items():
-                for u, v, data in graph.in_edges(node1, data = True):
-                    if data['congestion'] == 0:
-                        graph[u][v]['congestion'] = 1
+            graph = self._estimate_missing_congestions(graph)
 
             #Recompute iTimes
             self._igraph = self._get_igraph(graph)
+
             print("Done")
 
 
@@ -366,6 +342,44 @@ class iGraph:
 
                 #It takes some extra seconds to change streets (One must usually turn, cross an intersection or wait for the traffic light).
                 graph[node1][node2]['itime'] += 5
+        return graph
+
+    def _estimate_missing_congestions(self, graph):
+        '''
+        Given a graph with partially known congestions estimates the congestions that are missing.
+        Params:
+            - graph: The graph whose congestions should be estimated.
+        Returns the resulting graph.
+        '''
+        # For each iteration for each node extend the average congestion of the adjacent
+        # streets with known congestion to the adjacent streets with unknown congestion.
+        for iteration in range(6):
+            for node1, info1 in graph.nodes.items():
+                congestionSum = 0
+                congestionCount = 0
+                for u, v, data in graph.in_edges(node1, data = True):
+                    if data['congestion'] > 0:
+                        congestionSum += data['congestion']
+                        congestionCount += 1
+                for u, v, data in graph.out_edges(node1, data = True):
+                    if data['congestion'] > 0:
+                        congestionSum += data['congestion']
+                        congestionCount += 1
+                if congestionCount > 0:
+                    averageCongestion = congestionSum//congestionCount
+                    for u, v, data in graph.in_edges(node1, data = True):
+                        if data['congestion'] == 0:
+                            graph[u][v]['congestion'] = max(1, averageCongestion-1)
+                    for u, v, data in graph.out_edges(node1, data = True):
+                        if data['congestion'] == 0:
+                            graph[u][v]['congestion'] = max(1, averageCongestion)
+
+        # The remaining streets are very isolated so we can assume there won't be many people using them.
+        for node1, info1 in graph.nodes.items():
+            for u, v, data in graph.in_edges(node1, data = True):
+                if data['congestion'] == 0:
+                    graph[u][v]['congestion'] = 1
+
         return graph
 
     def _build_igraph(self, graph, highways, congestions):
@@ -402,35 +416,8 @@ class iGraph:
 
         print("Filling congestions...")
 
-        # Complete the remaining congestions
-        # For each iteration for each node extend the average congestion of the adjacent
-        # streets with known congestion to the adjacent streets with unknown congestion.
-        for iteration in range(6):
-            for node1, info1 in graph.nodes.items():
-                congestionSum = 0
-                congestionCount = 0
-                for u, v, data in graph.in_edges(node1, data = True):
-                    if data['congestion'] > 0:
-                        congestionSum += data['congestion']
-                        congestionCount += 1
-                for u, v, data in graph.out_edges(node1, data = True):
-                    if data['congestion'] > 0:
-                        congestionSum += data['congestion']
-                        congestionCount += 1
-                if congestionCount > 0:
-                    averageCongestion = congestionSum//congestionCount
-                    for u, v, data in graph.in_edges(node1, data = True):
-                        if data['congestion'] == 0:
-                            graph[u][v]['congestion'] = max(1, averageCongestion-1)
-                    for u, v, data in graph.out_edges(node1, data = True):
-                        if data['congestion'] == 0:
-                            graph[u][v]['congestion'] = max(1, averageCongestion)
-
-        # The remaining streets are very isolated so we can assume there won't be many people using them.
-        for node1, info1 in graph.nodes.items():
-            for u, v, data in graph.in_edges(node1, data = True):
-                if data['congestion'] == 0:
-                    graph[u][v]['congestion'] = 1
+        #Estimate the missing congestions
+        graph = self._estimate_missing_congestions(graph)
 
         print("Declaring iTimes...")
 
@@ -438,6 +425,5 @@ class iGraph:
         igraph = self._get_igraph(graph)
         
         print("Done")
-
 
         return igraph

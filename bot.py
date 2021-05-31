@@ -10,7 +10,7 @@ def start(update, context):
     '''
     Command /start. General description of the bot.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -21,7 +21,7 @@ def help(update, context):
     '''
     Command /help. Lists available commands for the bot.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -40,7 +40,7 @@ def author(update, context):
     '''
     Command /author. Displays the authors of the project.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -56,7 +56,7 @@ def go(update, context):
     '''
     Command /go. Finds and displays the path to the location implied in the message.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -79,7 +79,7 @@ def where(update, context):
     '''
     Command /where. Displays the stored location of the user.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -96,7 +96,7 @@ def pos(update, context):
     '''
     Secret command /pos. Updates the global location with the given one.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -121,7 +121,7 @@ def set_location(update, context):
     '''
     Given a location message, it updates it to locations.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -134,7 +134,7 @@ def send_message(update, context, message):
     '''
     Sends message formatted as Markdown.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
         - message: string with the message that should be sent with markdown format.
     This funcion does not return anything.
@@ -145,7 +145,7 @@ def send_location_error(update, context):
     '''
     Informs the user that the given location is not valid.
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
     This funcion does not return anything.
     '''
@@ -155,7 +155,7 @@ def send_map(update, context, path):
     '''
     Sends a map given a Location or a path (list of Locations).
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
         - context: Telegram's context
         - path: A list of nodes of the path that should be displayed.
     This funcion does not return anything.
@@ -185,7 +185,7 @@ def get_user(update):
     '''
     Auxiliary function to get username
     Params:
-        - update: ???????????????????????????
+        - update: Telegram's update
     Returns the obtained username.
     '''
     return update.message.chat.username
@@ -193,7 +193,7 @@ def get_user(update):
 def main():
 
     global igraph
-    igraph = iGraph() 
+    igraph = iGraph()
 
     print("Starting bot...")
 
