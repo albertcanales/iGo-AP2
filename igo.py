@@ -20,7 +20,7 @@ CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2
 Highway = collections.namedtuple('Highway', 'description coords')
 Congestion = collections.namedtuple('Congestion', 'date actual predicted')
 Highwestion = collections.namedtuple('Highwestion', 'description coords actualCongestion predictedCongestion')
-Location = collections.namedtuple('Location', 'lat lon')
+Location = collections.namedtuple('Location', 'lon lat')
 
 class iGraph:
 
@@ -60,9 +60,9 @@ class iGraph:
             - target_loc: A location with the target of the path
         Returns a list of locations along the resulting path, if there is no path None is returned.
         '''
-        source = ox.get_nearest_nodes(self.igraph, [source_loc.lat], [source_loc.lon])[0]
-        target = ox.get_nearest_nodes(self.igraph, [target_loc.lat], [target_loc.lon])[0]
-        if nx.has_path(self.igraph, source=source, target=target):
+        source = ox.get_nearest_nodes(self._igraph, [source_loc.lon], [source_loc.lat])[0]
+        target = ox.get_nearest_nodes(self._igraph, [target_loc.lon], [target_loc.lat])[0]
+        if nx.has_path(self._igraph, source=source, target=target):
             node_path = nx.shortest_path(self._igraph, source=source, target=target, weight='itime')
             return self._get_path_coords(node_path)
         return None
