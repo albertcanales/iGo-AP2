@@ -1,4 +1,4 @@
-![](banner.jpg)
+![](banner.png)
 
 # iGo-BCN
 ## By Javier Nistal Salas i Albert Canales Ros
@@ -37,9 +37,9 @@ Some auxiliary functions are used in order to send messages, maps, etc. with the
 
 Here is an example of an interaction with the bot:
 
-![](1.jpg)
+![](1.png)
 
-![](2.jpg) ![](3.jpg)
+![](2.png) ![](3.png)
 
-![](4.jpg) ![](5.jpg)
+![](4.png) ![](5.png)
 
