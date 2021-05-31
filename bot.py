@@ -135,6 +135,7 @@ def pos(update, context):
 
 # Auxiliary methods
 
+
 def set_location(update, context):
     '''
     Given a location message, it updates it to locations.

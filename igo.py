@@ -100,7 +100,8 @@ class iGraph:
         This function does not return anything.
         '''
         multiGraph = nx.MultiDiGraph(self._igraph)
-        ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
+        ox.plot_graph(multiGraph, node_size=0, save=save,
+                      filepath=IMAGE_FILENAME)
 
     # Functions for input / output
 

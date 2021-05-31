@@ -3,13 +3,13 @@
 # iGo-BCN
 ## By Javier Nistal Salas i Albert Canales Ros
 
-iGo-Bot is a Telegram bot that guides you through Barcelona. The project is composed by two files: `igo.py` and `bot.py`, described on the next sections.
+iGo-Bot is a Telegram bot that guides you through Barcelona. The project is composed by two files: `igo.py` and `bot.py`, described in the next sections.
 
 ## iGo.py
 
-The file `igo.py` has the purpose of managing the iGraph from Barcelona. At the beggining, it contains some string constants for managing the input and some named tuples with the same purpose.
+The file `igo.py` has the purpose of managing the iGraph from Barcelona. At the beginning, it contains some string constants for managing the input and some named tuples with the same purpose.
 
-But most importantly it contains the class iGraph. When initialized, the necessary data for iGraph is downloaded (or loaded from cache if possible) and it is saved on a private attribute.
+But most importantly, it contains the class iGraph. When initialized, the necessary data for iGraph is downloaded (or loaded from cache if possible) and it is saved in a private attribute. The constructor calls the necessary private functions to compute and keep updated the `itime` attribute. Every 5 minutes it checks for updated congestion data on the web, it does so in a separate thread so as not to lag the bot. The missing congestions are estimated by extending the average of the known congestions of the edges of a node to the unknown congestions of the edges of that node, this process is repeated 6 times and the rest of the streets are assumed to be very remote, this means they probably have fluid traffic.
 
 The API offers the following methods:
 
@@ -21,36 +21,10 @@ The API offers the following methods:
 
 # TODOs
 
-## igo.py
-- ~~No utilitzar os per la lectura, lliçons (Canales)~~
-- ~~Utilitzar SIZE, al lliçons està com fer-lo servir~~
-- ~~Completar congestions~~
-- ~~Limpiar eurística para itime~~
-- ~~Tener en cuenta ángulos y esas cosas~~
-- ~~Separar graph en una clase~~
-- ~~Métodos que no requieran un graph~~
-- ~~Comentar código, elecciones de diseño~~
-- ~~Que actualice valores cada 5 min~~
-- ~~Traducir comentarios~~
-- ~~Geocoder no funciona bien, siempre devuelve lo mismo a los nombres~~
-- ~~Que no peti si no hi ha internet~~
-- Que la foto de staticmaps es generi a igo, funció per eliminar fotos
-- Icones mapa
-
-## bot.py
-- ~~Posar bonica output (treure interacció?)~~
-- ~~Mètode go (requereix coses abans)~~
-- ~~Fer StaticMap a pos~~
-- ~~Fer que les locations vagin amb l'usuari, no que sigui global~~
-- ~~Treure boto request (reiniciar conversa?)~~
-- ~~Canviar nom/foto bot~~
-- ~~Treure globals a igraph?~~
-- ~~Provar que li arribi més d'una connexió~~
-- ~~Avisar quan estigui actualitzant congestions~~
-
 ## General
-- Documentar codi
-- Diferenciar mètodes publics/privats API
-- Seguir regles PEP (0 DIRECTE!!!)
+- ~~Documentar codi~~
+- ~~Diferenciar mètodes publics/privats API~~
+- ~~Seguir regles PEP (0 DIRECTE!!!)~~
 - Fer README amb documentació
+- Fer requirements.txt
 
