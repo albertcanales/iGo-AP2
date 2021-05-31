@@ -12,6 +12,9 @@
 - ~~Que actualice valores cada 5 min~~
 - ~~Traducir comentarios~~
 - ~~Geocoder no funciona bien, siempre devuelve lo mismo a los nombres~~
+- ~~Que no peti si no hi ha internet~~
+- Que la foto de staticmaps es generi a igo, funció per eliminar fotos
+- Icones mapa
 
 ## bot.py
 - ~~Posar bonica output (treure interacció?)~~
@@ -19,9 +22,10 @@
 - ~~Fer StaticMap a pos~~
 - ~~Fer que les locations vagin amb l'usuari, no que sigui global~~
 - ~~Treure boto request (reiniciar conversa?)~~
-- Canviar nom/foto bot
+- ~~Canviar nom/foto bot~~
 - ~~Treure globals a igraph?~~
-- Frases anècdotes
+- ~~Provar que li arribi més d'una connexió~~
+- Avisar quan estigui actualitzant congestions
 
 ## General
 - Documentar codi

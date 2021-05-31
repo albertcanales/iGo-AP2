@@ -13,6 +13,7 @@ import time
 PLACE = 'Barcelona, Catalonia'
 IMAGE_FILENAME = 'barcelona.png'
 GRAPH_FILENAME = 'barcelona.graph'
+HIGHWAYS_FILENAME = 'barcelona.highways'
 SIZE = 800
 HIGHWAYS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/1090983a-1c40-4609-8620-14ad49aae3ab/resource/1d6c814c-70ef-4147-aa16-a49ddb952f72/download/transit_relacio_trams.csv'
 CONGESTIONS_URL = 'https://opendata-ajuntament.barcelona.cat/data/dataset/8319c2b1-4c21-4962-9acd-6db4c5ff1148/resource/2d456eb5-4ea6-4f68-9794-2f3f1a58a933/download'
@@ -26,23 +27,11 @@ class iGraph:
 
     def __init__(self):
         '''The class constructor'''
-        graph = self.get_graph()
-        #plot_graph(graph)
+        graph = self._get_graph()
 
         # download highways and parse them accordingly
-        highwayscoords = self._download_highways(HIGHWAYS_URL)
-
-        print("Proyecting highways...")
-        self._highways = {}
-        for key in highwayscoords.keys():
-            coords = list(highwayscoords[key].coords.coords)
-            coordsY = [coords[i][1] for i in range(len(coords))]
-            coordsX = [coords[i][0] for i in range(len(coords))]
-            nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
-            self._highways[key] = nodes
-
-        #plot_highways(highways, 'highways.png', SIZE)
-
+        self._highways = self._get_highways(graph)
+        
         # download congestions and parse them accordingly
         self._congestions = self._download_congestions(CONGESTIONS_URL)
 
@@ -87,52 +76,75 @@ class iGraph:
                 node_info = self._igraph.nodes[node]
                 return Location(node_info['x'], node_info['y'])
 
-    def get_graph(self):
-        '''
-        Gets the graph of the streets from cache or downloads it from the internet if necessary.
-        Returns the obtained graph.
-        '''
-        # load/download graph (using cache) and plot it on the screen
-        if not self._exists_graph(GRAPH_FILENAME):
-            graph = self._download_graph(PLACE)
-            self._save_graph(graph, GRAPH_FILENAME)
-            print("Graph generated")
-        else:
-            graph = self._load_graph(GRAPH_FILENAME)
-            print("Graph loaded")
-        return graph
-
     def plot_graph(self, graph, attr=None, save=True):
         '''
         Plots the given graph.
         Params:
             - graph: The graph to plot.
-            - attr = None: The name of the attribute the color should depends on.
             - save = True: A boolean that determines whether the resulting image should be saved.
         This function does not return anything.
         '''
         multiGraph = nx.MultiDiGraph(graph)
-
-        if attr is None:
-            ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
-        else:
-            edges = ox.graph_to_gdfs(multiGraph, nodes=False)
-            # assigns a different color for each value of atribute attr
-            edge_types = edges[attr].value_counts()
-            color_list = ox.plot.get_colors(n=len(edge_types), cmap='plasma_r')
-            color_mapper = pd.Series(color_list, index=edge_types.index).to_dict()
-
-            # get the color for each edge based on its attr
-            ec = [color_mapper[d[attr]] for u, v, k, d in multiGraph.edges(keys=True, data=True)]
-            ox.plot_graph(multiGraph, edge_color=ec, node_size=0, save=save, filepath=IMAGE_FILENAME)
+        ox.plot_graph(multiGraph, node_size=0, save=save, filepath=IMAGE_FILENAME)
     
     # Functions for input / output
 
-    def _exists_graph(self, filename):
+    def _get_graph(self):
         '''
-        Determines whether the graph of the city is stored in cache.
+        Gets the graph of the streets from cache or downloads it from the internet if necessary.
+        Returns the obtained graph.
+        '''
+        # load/download graph (using cache) and plot it on the screen
+        if not self._exists_file(GRAPH_FILENAME):
+            graph = self._download_graph(PLACE)
+            self._save_dict(graph, GRAPH_FILENAME)
+            print("Graph generated")
+        else:
+            graph = self._load_dict(GRAPH_FILENAME)
+            print("Graph loaded")
+        return graph
+
+    def _get_highways(self, graph):
+        '''
+        Gets the highways from cache or downloads them from the internet if necessary.
         Params:
-            - Filename: A string with the name the file with the graph should have.
+            - graph: The graph obtained by cache or downloaded.
+        Returns the obtained highways.
+        '''
+        # load/download graph (using cache) and plot it on the screen
+        if not self._exists_file(HIGHWAYS_FILENAME):
+            highways_coords = self._download_highways(HIGHWAYS_URL)
+            highways = self._project_highways(graph, highways_coords)
+            self._save_dict(highways, HIGHWAYS_FILENAME)
+            print("Highways generated")
+        else:
+            highways = self._load_dict(HIGHWAYS_FILENAME)
+            print("Highways loaded")
+        return highways
+
+    def _project_highways(self, graph, highways_coords):
+        '''
+        Converts highways format from coordinates to node ids.
+        Params:
+            - graph: The graph obtained by cache or downloaded.
+            - highways_coords: The highways formatted its id and its coordinates.
+        Returns the highways formatted as its id and its node id's
+        '''
+        print("Proyecting highways...")
+        highways = {}
+        for key in highways_coords.keys():
+            coords = list(highways_coords[key].coords.coords)
+            coordsY = [coords[i][1] for i in range(len(coords))]
+            coordsX = [coords[i][0] for i in range(len(coords))]
+            nodes = ox.get_nearest_nodes(graph, coordsX, coordsY)
+            highways[key] = nodes
+        return highways
+
+    def _exists_file(self, filename):
+        '''
+        Determines whether the given file is stored in cache.
+        Params:
+            - Filename: A string with the name of the file.
         Returns a boolean with the result.
         '''
         return os.path.isfile(filename)
@@ -155,27 +167,27 @@ class iGraph:
                 print("Download failed!!! Retrying...")
         return graph
 
-    def _save_graph(self, graph, filename):
+    def _save_dict(self, dictionary, filename):
         '''
-        Saves the graph in cache so it won't have to be downloaded again.
+        Saves the dictionary in cache so it won't have to be downloaded again.
         Params:
-            - graph: The graph to be saved.
+            - dictionary: The dictionary to be saved.
             - filename: A string with the name of the file that will store the graph.
         This function does not return anything.
         '''
         with open(filename, 'wb') as file:
-            pickle.dump(graph, file)
+            pickle.dump(dictionary, file)
 
-    def _load_graph(self, filename):
+    def _load_dict(self, filename):
         '''
-        Loads the graph of the streets from cache.
+        Loads the given dictionary from cache.
         Params:
             - filename: The name of the file the graph should be extracted from.
-        Returns the obtained graph.
+        Returns the obtained dictionary.
         '''
         with open(filename, 'rb') as file:
-            graph = pickle.load(file)
-        return graph
+            dictionary = pickle.load(file)
+        return dictionary
 
     def _get_line_string_from_coords(self, coords):
         '''

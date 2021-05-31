@@ -1,5 +1,6 @@
 *.png
 *.graph
+*.highways
 *.json
 cache/
 *.txt
