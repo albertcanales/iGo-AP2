@@ -145,8 +145,14 @@ class iGraph:
         Returns the obtained graph.
         '''
         print("Downloading graph...")
-        graph = ox.graph_from_place(place, network_type='drive', simplify=True)
-        graph = ox.utils_graph.get_digraph(graph, weight='length')
+        done = False
+        while not done:
+            try:
+                graph = ox.graph_from_place(place, network_type='drive', simplify=True)
+                graph = ox.utils_graph.get_digraph(graph, weight='length')
+                done = True
+            except:
+                print("Download failed!!! Retrying...")
         return graph
 
     def _save_graph(self, graph, filename):
@@ -190,10 +196,16 @@ class iGraph:
         Returns a dictionary mapping the ids to the obtained highways.
         '''
         print("Downloading highways...")
-        with urllib.request.urlopen(url) as response:
-            lines = [l.decode('utf-8') for l in response.readlines()]
-        reader = csv.reader(lines, delimiter=',', quotechar='"')
-        next(reader)  # ignore first line with description
+        done = False
+        while not done:
+            try:
+                with urllib.request.urlopen(url) as response:
+                    lines = [l.decode('utf-8') for l in response.readlines()]
+                reader = csv.reader(lines, delimiter=',', quotechar='"')
+                next(reader)  # ignore first line with description
+                done = True
+            except:
+                print("Download failed!!! Retrying...")
 
         highways = {}
         for line in reader:
@@ -209,9 +221,15 @@ class iGraph:
         Returns a dictionary mapping the ids to the obtained congestions.
         '''
         print("Downloading congestions...")
-        with urllib.request.urlopen(url) as response:
-            lines = [l.decode('utf-8') for l in response.readlines()]
-        reader = csv.reader(lines, delimiter='#', quotechar='"')
+        done = False
+        while not done:
+            try:
+                with urllib.request.urlopen(url) as response:
+                    lines = [l.decode('utf-8') for l in response.readlines()]
+                reader = csv.reader(lines, delimiter='#', quotechar='"')
+                done = True
+            except:
+                print("Download failed!!! Retrying...")
 
         congestions = {}
         for line in reader:
