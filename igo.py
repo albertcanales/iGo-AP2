@@ -278,7 +278,7 @@ class iGraph:
             line = list(map(int, line))
             way_id, date, actual, predicted = line
             if way_id not in congestions.keys() or \
-            congestions[way_id].date < date:
+                    congestions[way_id].date < date:
                 congestions[way_id] = Congestion(date, actual, predicted)
         return congestions
 
@@ -354,9 +354,9 @@ class iGraph:
                             weight='length')
                         for i in range(1, len(path)):
                             graph[path[i-1]][path[i]]['congestion'] = \
-                            congestions[key].actual
+                                congestions[key].actual
                             graph[path[i-1]][path[i]]['congestionInfo'] = \
-                            (congestions[key].actual > 0)
+                                (congestions[key].actual > 0)
                             anyUpdate = True
 
         # If there has been an update the estimations and the itime need to be
@@ -389,13 +389,13 @@ class iGraph:
                     # If there is data about the max speed we can assign the
                     # time it would take to get to the end of the street.
                     graph[node1][node2]['itime'] = \
-                    graph[node1][node2]['length'] / \
-                    self._get_speed(graph[node1][node2]['maxspeed'])
+                        graph[node1][node2]['length'] / \
+                        self._get_speed(graph[node1][node2]['maxspeed'])
                 else:
                     # If there is no data about the max speed then 30 km/h is a
                     # decent guess.
                     graph[node1][node2]['itime'] = \
-                    graph[node1][node2]['length'] / 30
+                        graph[node1][node2]['length'] / 30
 
                 if graph[node1][node2]['congestion'] == 6:
                     # If the street is blocked we can't use it.
@@ -490,7 +490,7 @@ class iGraph:
                             weight='length')
                         for i in range(1, len(path)):
                             graph[path[i-1]][path[i]]['congestion'] = \
-                            congestions[key].actual
+                                congestions[key].actual
                             graph[path[i-1]][path[i]]['congestionInfo'] = True
 
         print("Filling congestions...")
